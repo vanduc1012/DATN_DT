@@ -24,21 +24,29 @@ export const bookingAPI = {
   getAvailableSlots: (pitchId, date) =>
     api.get(`/bookings/available/${pitchId}`, { params: { date } }),
   getMy: () => api.get('/bookings/my'),
-  getAll: () => api.get('/bookings'),
+  getAll: (params) => api.get('/bookings', { params }),
   getById: (id) => api.get(`/bookings/${id}`),
   create: (data) => api.post('/bookings', data),
   updateStatus: (id, status) => api.patch(`/bookings/${id}/status`, { status }),
+  pay: (id, paymentMethod) => api.patch(`/bookings/${id}/payment`, { paymentMethod }),
 };
 
 export const reviewAPI = {
-  getByPitch: (pitchId) => api.get(`/reviews/pitch/${pitchId}`),
-  create: (data) => api.post('/reviews', data),
-  update: (id, data) => api.put(`/reviews/${id}`, data),
+  getByPitch: (pitchId) => api.get(`/reviews/${pitchId}`),
+  create: (pitchId, data) => api.post(`/reviews/${pitchId}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };
 
 export const userAPI = {
   getAll: () => api.get('/users'),
   getById: (id) => api.get(`/users/${id}`),
-  updateProfile: (data) => api.put('/users/profile', data),
+  updateProfile: (data) => api.put('/users/me', data),
+  toggleStatus: (id) => api.patch(`/users/${id}/toggle-status`),
+  delete: (id) => api.delete(`/users/${id}`),
+};
+
+export const statsAPI = {
+  getOverview: () => api.get('/stats/overview'),
+  getRevenue: (params) => api.get('/stats/revenue', { params }),
+  getTopPitches: () => api.get('/stats/top-pitches'),
 };

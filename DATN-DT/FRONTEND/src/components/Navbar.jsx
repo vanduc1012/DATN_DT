@@ -74,6 +74,11 @@ export default function Navbar() {
                     🏟️ Quản lý sân
                   </Link>
                 )}
+                {user.role === 'admin' && (
+                  <Link to="/admin" onClick={() => setMenuOpen(false)}>
+                    ⚙️ Admin Panel
+                  </Link>
+                )}
                 <div className="divider" />
                 <button onClick={handleLogout}>🚪 Đăng xuất</button>
               </div>

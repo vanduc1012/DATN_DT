@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 
-// Pages
+// User Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,17 +14,16 @@ import PitchDetail from './pages/PitchDetail';
 import MyBookings from './pages/MyBookings';
 import Profile from './pages/Profile';
 
-function AppLayout({ children }) {
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
-}
+// Admin Pages
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminPitches from './pages/admin/AdminPitches';
+import AdminBookings from './pages/admin/AdminBookings';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminStats from './pages/admin/AdminStats';
 
-function AuthLayout({ children }) {
-  return children;
+function AppLayout({ children }) {
+  return <><Navbar />{children}</>;
 }
 
 export default function App() {
@@ -47,56 +46,66 @@ export default function App() {
           }}
         />
         <Routes>
-          {/* Auth pages - no navbar */}
-          <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
-          <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
-          <Route path="/forgot-password" element={<AuthLayout><ForgotPassword /></AuthLayout>} />
+          {/* ── Auth (no navbar) ─────────────────── */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Main pages - with navbar */}
+          {/* ── Public (with navbar) ─────────────── */}
           <Route path="/" element={<AppLayout><Home /></AppLayout>} />
           <Route path="/pitches" element={<AppLayout><Pitches /></AppLayout>} />
           <Route path="/pitches/:id" element={<AppLayout><PitchDetail /></AppLayout>} />
 
-          {/* Protected routes */}
-          <Route
-            path="/my-bookings"
-            element={
-              <AppLayout>
-                <PrivateRoute>
-                  <MyBookings />
-                </PrivateRoute>
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <AppLayout>
-                <PrivateRoute>
-                  <Profile />
-                </PrivateRoute>
-              </AppLayout>
-            }
-          />
+          {/* ── Protected user routes ─────────────── */}
+          <Route path="/my-bookings" element={
+            <AppLayout><PrivateRoute><MyBookings /></PrivateRoute></AppLayout>
+          } />
+          <Route path="/profile" element={
+            <AppLayout><PrivateRoute><Profile /></PrivateRoute></AppLayout>
+          } />
 
-          {/* 404 */}
-          <Route
-            path="*"
-            element={
-              <AppLayout>
-                <div className="page-wrapper">
-                  <div className="container">
-                    <div className="empty-state" style={{ minHeight: '60vh' }}>
-                      <div className="empty-icon">🔍</div>
-                      <h2>404 - Không tìm thấy trang</h2>
-                      <p>Trang bạn tìm kiếm không tồn tại.</p>
-                      <a href="/" className="btn btn-primary btn-lg">🏠 Về trang chủ</a>
-                    </div>
+          {/* ── Admin routes (role=admin) ─────────── */}
+          <Route path="/admin" element={
+            <PrivateRoute roles={['admin']}>
+              <AdminLayout><AdminDashboard /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/pitches" element={
+            <PrivateRoute roles={['admin']}>
+              <AdminLayout><AdminPitches /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/bookings" element={
+            <PrivateRoute roles={['admin']}>
+              <AdminLayout><AdminBookings /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/users" element={
+            <PrivateRoute roles={['admin']}>
+              <AdminLayout><AdminUsers /></AdminLayout>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/stats" element={
+            <PrivateRoute roles={['admin']}>
+              <AdminLayout><AdminStats /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          {/* ── 404 ─────────────────────────────── */}
+          <Route path="*" element={
+            <AppLayout>
+              <div className="page-wrapper">
+                <div className="container">
+                  <div className="empty-state" style={{ minHeight: '60vh' }}>
+                    <div className="empty-icon">🔍</div>
+                    <h2>404 - Không tìm thấy trang</h2>
+                    <p>Trang bạn tìm kiếm không tồn tại.</p>
+                    <a href="/" className="btn btn-primary btn-lg">🏠 Về trang chủ</a>
                   </div>
                 </div>
-              </AppLayout>
-            }
-          />
+              </div>
+            </AppLayout>
+          } />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

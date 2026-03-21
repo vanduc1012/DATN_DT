@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../api/services';
+import { authAPI, userAPI } from '../api/services';
 import toast from 'react-hot-toast';
 
 export default function Profile() {
   const { user, setUser } = useAuth();
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' });
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [saving, setSaving] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
@@ -14,18 +14,21 @@ export default function Profile() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (form.phone && !/^[0-9]{10,11}$/.test(form.phone)) {
+      return toast.error('Số điện thoại không hợp lệ (10-11 chữ số)');
+    }
     setSaving(true);
     try {
-      // Nếu backend có endpoint update profile
-      // Tạm thời cập nhật local state
-      setUser((u) => ({ ...u, name: form.name }));
-      toast.success('Đã lưu hồ sơ!');
+      const { data } = await userAPI.updateProfile({ name: form.name, phone: form.phone || undefined });
+      setUser((u) => ({ ...u, name: data.data?.name || form.name, phone: data.data?.phone || form.phone }));
+      toast.success('Đã cập nhật thông tin!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi cập nhật');
     } finally {
       setSaving(false);
     }
   };
+
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -113,6 +116,20 @@ export default function Profile() {
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 5 }}>
                     Email không thể thay đổi
                   </p>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Số điện thoại</label>
+                  <div className="input-group">
+                    <span className="input-icon">📞</span>
+                    <input
+                      type="tel"
+                      className="form-control"
+                      placeholder="0912345678"
+                      value={form.phone}
+                      onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                      maxLength={11}
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Vai trò</label>
