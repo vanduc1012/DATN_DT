@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { pitchAPI, bookingAPI, userAPI } from '../../api/services';
+import { statsAPI } from '../../api/services';
 
 function StatCard({ icon, label, value, sub, color = 'var(--primary)' }) {
   return (
@@ -10,13 +10,13 @@ function StatCard({ icon, label, value, sub, color = 'var(--primary)' }) {
       borderLeft: `3px solid ${color}`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-        <span style={{ fontSize: '1.5rem' }}>{icon}</span>
+        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+        <span style={{ fontSize: '1.6rem' }}>{icon}</span>
       </div>
       <div style={{ fontSize: '2rem', fontWeight: 900, color }}>
-        {value ?? <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>…</span>}
+        {value ?? <span className="spinner" style={{ width: 20, height: 20, borderTopColor: color }} />}
       </div>
-      {sub && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', marginTop: 6 }}>{sub}</div>}
     </div>
   );
 }
@@ -25,72 +25,89 @@ const STATUS_COLORS = {
   pending: 'var(--warning)', confirmed: 'var(--success)',
   cancelled: 'var(--danger)', completed: 'var(--info)',
 };
-const STATUS_LABELS = { pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', cancelled: 'Đã hủy', completed: 'Hoàn thành' };
+const STATUS_LABELS = {
+  pending: '⏳ Chờ xác nhận', confirmed: '✅ Đã xác nhận',
+  cancelled: '❌ Đã hủy', completed: '🏁 Hoàn thành',
+};
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ pitches: null, bookings: null, users: null, revenue: null });
+  const [overview, setOverview] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAll = async () => {
+    const load = async () => {
       try {
-        const [pitchRes, bookingRes, userRes] = await Promise.all([
-          pitchAPI.getAll({ limit: 1000 }),
-          bookingAPI.getAll(),
-          userAPI.getAll(),
+        const [ovRes, bookRes] = await Promise.allSettled([
+          statsAPI.getOverview(),
+          import('../../api/services').then(m => m.bookingAPI.getAll({ limit: 8, sort: '-createdAt' })),
         ]);
-
-        const bookingsRaw = bookingRes.data?.data;
-        const pitchesRaw = pitchRes.data?.data;
-        const usersRaw = userRes.data?.data;
-
-        const allBookings = Array.isArray(bookingsRaw) ? bookingsRaw : bookingsRaw?.bookings || [];
-        const allPitches = Array.isArray(pitchesRaw) ? pitchesRaw : pitchesRaw?.pitches || [];
-        const allUsers = Array.isArray(usersRaw) ? usersRaw : usersRaw?.users || [];
-
-        const revenue = allBookings
-          .filter((b) => b.status !== 'cancelled')
-          .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
-
-        setStats({
-          pitches: allPitches.length,
-          bookings: allBookings.length,
-          users: allUsers.length,
-          revenue,
-        });
-
-        setRecentBookings(allBookings.slice(0, 8));
-      } catch (err) {
-        console.error(err);
+        if (ovRes.status === 'fulfilled') setOverview(ovRes.value.data?.data);
+        if (bookRes.status === 'fulfilled') {
+          const raw = bookRes.value.data?.data;
+          setRecentBookings(Array.isArray(raw) ? raw.slice(0, 8) : raw?.bookings?.slice(0, 8) || []);
+        }
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     };
-    fetchAll();
+    load();
   }, []);
+
+  const fmtRevenue = (v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M₫` : v >= 1000 ? `${(v / 1000).toFixed(0)}K₫` : `${v}₫`;
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: 4 }}>📊 Dashboard</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Tổng quan hệ thống SânBóngPro
-        </p>
+      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: 4 }}>📊 Dashboard</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Tổng quan hệ thống SânBóngPro</p>
+        </div>
+        <Link to="/admin/stats" className="btn btn-primary btn-sm">📈 Xem báo cáo</Link>
       </div>
 
       {/* Stat Cards */}
       <div className="grid-4" style={{ marginBottom: 28 }}>
-        <StatCard icon="🏟️" label="Sân bóng" value={stats.pitches} sub="Đang hoạt động" color="var(--primary)" />
-        <StatCard icon="📅" label="Tổng đặt sân" value={stats.bookings} sub="Tất cả thời gian" color="var(--info)" />
-        <StatCard icon="👤" label="Người dùng" value={stats.users} sub="Đã đăng ký" color="var(--warning)" />
-        <StatCard
-          icon="💰" label="Doanh thu" color="var(--success)"
-          value={stats.revenue != null ? `${(stats.revenue / 1000000).toFixed(1)}M` : null}
-          sub="Từ các booking thành công"
-        />
+        <StatCard icon="🏟️" label="Sân bóng" color="var(--primary)"
+          value={overview ? `${overview.pitches?.active || 0}/${overview.pitches?.total || 0}` : null}
+          sub="Đang hoạt động / Tổng số" />
+        <StatCard icon="📅" label="Tổng đặt sân" color="var(--info)"
+          value={overview?.bookings?.total ?? null}
+          sub={overview ? `${overview.bookings?.pending || 0} chờ xác nhận` : 'Tất cả thời gian'} />
+        <StatCard icon="👤" label="Người dùng" color="var(--warning)"
+          value={overview?.users?.total ?? null}
+          sub="Đã đăng ký" />
+        <StatCard icon="💰" label="Doanh thu" color="var(--success)"
+          value={overview ? fmtRevenue(overview.revenue?.total || 0) : null}
+          sub={overview ? `Đã thanh toán: ${fmtRevenue(overview.revenue?.paid || 0)}` : 'Từ booking thành công'} />
       </div>
+
+      {/* Booking status breakdown */}
+      {overview && (
+        <div className="grid-4" style={{ marginBottom: 28 }}>
+          {[
+            { key: 'pending', label: 'Chờ xác nhận', icon: '⏳' },
+            { key: 'confirmed', label: 'Đã xác nhận', icon: '✅' },
+            { key: 'completed', label: 'Hoàn thành', icon: '🏁' },
+            { key: 'cancelled', label: 'Đã hủy', icon: '❌' },
+          ].map(({ key, label, icon }) => (
+            <div key={key} style={{
+              background: 'var(--bg-card)', border: `1px solid ${STATUS_COLORS[key]}44`,
+              borderRadius: 'var(--radius-md)', padding: '14px 18px',
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>
+                {icon} {label}
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: STATUS_COLORS[key] }}>
+                {overview.bookings?.[key] || 0}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Quick Links */}
       <div className="grid-4" style={{ marginBottom: 28 }}>
@@ -105,24 +122,12 @@ export default function AdminDashboard() {
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius-lg)', padding: '18px',
               display: 'flex', alignItems: 'center', gap: 14,
-              transition: 'var(--transition)',
-              cursor: 'pointer',
+              transition: 'var(--transition)', cursor: 'pointer',
             }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(22,163,74,0.35)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(22,163,74,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: 'rgba(22,163,74,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.4rem', flexShrink: 0,
-              }}>{icon}</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(22,163,74,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>{icon}</div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 2 }}>{label}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{desc}</div>
@@ -132,16 +137,12 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent Bookings */}
-      <div style={{
-        background: 'var(--bg-card)', border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-      }}>
+      {/* Recent Bookings Table */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ fontWeight: 700 }}>📋 Đặt sân gần đây</h3>
           <Link to="/admin/bookings" style={{ fontSize: '0.82rem', color: 'var(--primary-light)' }}>Xem tất cả →</Link>
         </div>
-
         {loading ? (
           <div className="loading-state"><div className="spinner-lg" /><span>Đang tải...</span></div>
         ) : recentBookings.length === 0 ? (
@@ -151,49 +152,40 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Người đặt', 'Sân', 'Ngày', 'Giờ', 'Giá', 'Trạng thái'].map((h) => (
-                    <th key={h} style={{
-                      padding: '12px 16px', textAlign: 'left',
-                      fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-                      letterSpacing: '0.05em', color: 'var(--text-muted)',
-                      whiteSpace: 'nowrap',
-                    }}>{h}</th>
+                  {['Người đặt', 'Sân', 'Ngày', 'Giờ', 'Giá', 'TT Đặt', 'TT Thanh toán'].map((h) => (
+                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {recentBookings.map((b, i) => (
-                  <tr key={b._id} style={{
-                    borderBottom: i < recentBookings.length - 1 ? '1px solid var(--border)' : 'none',
-                    transition: 'var(--transition)',
-                  }}
+                  <tr key={b._id}
+                    style={{ borderBottom: i < recentBookings.length - 1 ? '1px solid var(--border)' : 'none' }}
                     onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem', fontWeight: 600 }}>
+                    <td style={{ padding: '12px 14px', fontSize: '0.875rem', fontWeight: 600 }}>
                       {b.user?.name || '—'}
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{b.user?.email}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{b.user?.email}</div>
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem' }}>{b.pitch?.name || '—'}</td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 14px', fontSize: '0.875rem' }}>{b.pitch?.name || '—'}</td>
+                    <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {b.date ? new Date(b.date).toLocaleDateString('vi-VN') : '—'}
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {b.startTime} – {b.endTime}
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-light)', whiteSpace: 'nowrap' }}>
-                      {b.totalPrice?.toLocaleString('vi-VN')}₫
+                    <td style={{ padding: '12px 14px', fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-light)', whiteSpace: 'nowrap' }}>
+                      {(b.totalPrice || 0).toLocaleString('vi-VN')}₫
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '3px 10px', borderRadius: 100,
-                        fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
-                        background: `${STATUS_COLORS[b.status]}22`,
-                        color: STATUS_COLORS[b.status],
-                        border: `1px solid ${STATUS_COLORS[b.status]}44`,
-                      }}>
-                        {STATUS_LABELS[b.status] || b.status}
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 100, fontSize: '0.7rem', fontWeight: 700, background: `${STATUS_COLORS[b.status]}22`, color: STATUS_COLORS[b.status], border: `1px solid ${STATUS_COLORS[b.status]}44` }}>
+                        {STATUS_LABELS[b.status]?.replace(/^\S+\s/, '') || b.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 100, fontSize: '0.7rem', fontWeight: 700, background: b.paymentStatus === 'paid' ? 'rgba(22,163,74,0.15)' : 'rgba(245,158,11,0.15)', color: b.paymentStatus === 'paid' ? 'var(--success)' : 'var(--warning)', border: `1px solid ${b.paymentStatus === 'paid' ? 'rgba(22,163,74,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+                        {b.paymentStatus === 'paid' ? '✅ Đã TT' : '⏳ Chưa TT'}
                       </span>
                     </td>
                   </tr>
