@@ -18,6 +18,10 @@ export const pitchAPI = {
   create: (data) => api.post('/pitches', data),
   update: (id, data) => api.put(`/pitches/${id}`, data),
   delete: (id) => api.delete(`/pitches/${id}`),
+  uploadImages: (id, formData) => api.post(`/pitches/${id}/images`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  deleteImage: (id, imageUrl) => api.delete(`/pitches/${id}/images`, { data: { imageUrl } }),
 };
 
 export const bookingAPI = {
