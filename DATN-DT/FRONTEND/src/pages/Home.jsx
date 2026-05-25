@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
-import { pitchAPI } from '../api/services';
+import { pitchAPI, reviewAPI } from '../api/services';
 import toast from 'react-hot-toast';
 
 /* ── SVG Icons for Hero Search Card ── */
@@ -111,12 +111,8 @@ export default function Home() {
   const [type, setType] = useState('');
   const [date, setDate] = useState('');
 
-  // Testimonials and feedback form states
+  // Testimonials states
   const [testimonials, setTestimonials] = useState([]);
-  const [fbRating, setFbRating] = useState(5);
-  const [fbName, setFbName] = useState('');
-  const [fbRole, setFbRole] = useState('');
-  const [fbComment, setFbComment] = useState('');
 
   useEffect(() => {
     // Load pitches
@@ -125,27 +121,17 @@ export default function Home() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Load testimonials from localStorage
-    const saved = localStorage.getItem('website_feedbacks');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setTestimonials([...parsed, ...DEFAULT_TESTIMONIALS]);
-      } catch (e) {
-        setTestimonials(DEFAULT_TESTIMONIALS);
-      }
-    } else {
-      setTestimonials(DEFAULT_TESTIMONIALS);
-    }
+    // Load recent reviews from backend
+    reviewAPI.getRecent()
+      .then(({ data }) => {
+        const reviews = data?.data || [];
+        setTestimonials(reviews);
+      })
+      .catch(() => {
+        // Fallback to DEFAULT_TESTIMONIALS nếu backend không có
+        setTestimonials(DEFAULT_TESTIMONIALS.slice(0, 3));
+      });
   }, []);
-
-  // Pre-fill user details if logged in
-  useEffect(() => {
-    if (user) {
-      setFbName(user.name || '');
-      setFbRole(user.role === 'owner' ? 'Chủ sân bóng' : 'Thành viên');
-    }
-  }, [user]);
 
   const handleHeroSearch = (e) => {
     e.preventDefault();
@@ -156,44 +142,6 @@ export default function Home() {
     
     const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
     navigate(`/pitches${queryString}`);
-  };
-
-  const handleFeedbackSubmit = (e) => {
-    e.preventDefault();
-    if (!fbName.trim() || !fbComment.trim()) {
-      toast.error('Vui lòng nhập đầy đủ họ tên và nội dung đánh giá!');
-      return;
-    }
-
-    const newFeedback = {
-      id: 'fb_' + Date.now(),
-      name: fbName.trim(),
-      role: fbRole.trim() || 'Người chơi tự do',
-      comment: fbComment.trim(),
-      rating: fbRating,
-      verified: true
-    };
-
-    // Save to localStorage
-    const saved = localStorage.getItem('website_feedbacks');
-    let list = [];
-    if (saved) {
-      try { list = JSON.parse(saved); } catch (e) {}
-    }
-    const updatedList = [newFeedback, ...list];
-    localStorage.setItem('website_feedbacks', JSON.stringify(updatedList));
-
-    // Update state to render immediately
-    setTestimonials([newFeedback, ...testimonials]);
-
-    // Show success & reset
-    toast.success('🎉 Cảm ơn bạn đã gửi đánh giá cho website!');
-    setFbComment('');
-    setFbRating(5);
-    if (!user) {
-      setFbName('');
-      setFbRole('');
-    }
   };
 
   return (
@@ -329,21 +277,26 @@ export default function Home() {
         <div className="container">
           <h2 className="section-title" style={{ textAlign: 'center' }}>⭐ Đánh giá từ khách hàng</h2>
           <p className="section-subtitle" style={{ textAlign: 'center', marginBottom: 40 }}>
-            Những chia sẻ và phản hồi thực tế từ người dùng SânBóngPro
+            Những chia sẻ thực tế từ những người dùng đã hoàn thành đặt sân
           </p>
 
-          <div className="reviews-content-wrapper">
-            {/* Left Column: Testimonials List */}
-            <div className="testimonials-list">
-              {testimonials.slice(0, 4).map((item) => (
-                <div key={item.id} className="testimonial-card">
+          {testimonials.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">💬</div>
+              <h3>Chưa có đánh giá</h3>
+              <p>Hãy hoàn thành booking và trở thành người đầu tiên đánh giá SânBóngPro!</p>
+            </div>
+          ) : (
+            <div className="grid-3">
+              {testimonials.slice(0, 3).map((item) => (
+                <div key={item._id || item.id} className="testimonial-card">
                   <div className="testimonial-header">
                     <div className="testimonial-avatar">
-                      {item.name[0].toUpperCase()}
+                      {item.user?.name?.[0]?.toUpperCase() || item.name?.[0]?.toUpperCase() || 'U'}
                     </div>
                     <div className="testimonial-user">
-                      <h4>{item.name}</h4>
-                      <p>{item.role}</p>
+                      <h4>{item.user?.name || item.name || 'Ẩn danh'}</h4>
+                      <p>{item.pitch?.name || item.role || 'Sân bóng'}</p>
                     </div>
                   </div>
                   <p className="testimonial-text">
@@ -351,85 +304,13 @@ export default function Home() {
                   </p>
                   <div className="testimonial-footer">
                     <span className="testimonial-stars">
-                      {'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}
+                      {'★'.repeat(item.rating || 5)}{'☆'.repeat(5 - (item.rating || 5))}
                     </span>
-                    {item.verified && (
-                      <span className="testimonial-verified">
-                        ✓ Đã xác minh
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Right Column: Feedback Form */}
-            <div className="feedback-card">
-              <h3>Chia sẻ trải nghiệm</h3>
-              <p>Đóng góp ý kiến của bạn để giúp hệ thống hoàn thiện hơn</p>
-
-              <form onSubmit={handleFeedbackSubmit}>
-                {/* Rating */}
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Đánh giá website</label>
-                  <div className="stars-selector">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFbRating(star)}
-                        style={{ color: star <= fbRating ? 'var(--accent)' : '#cbd5e1' }}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Name */}
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Họ và tên</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Nhập họ và tên của bạn"
-                    value={fbName}
-                    onChange={(e) => setFbName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Role */}
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Vai trò / Đội bóng</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="VD: Đội trưởng FC Star, Người chơi tự do..."
-                    value={fbRole}
-                    onChange={(e) => setFbRole(e.target.value)}
-                  />
-                </div>
-
-                {/* Comment */}
-                <div className="form-group" style={{ marginBottom: 20 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Nhận xét của bạn</label>
-                  <textarea
-                    className="form-control"
-                    rows={4}
-                    placeholder="Cảm nhận của bạn về giao diện, tính năng, tốc độ của website..."
-                    value={fbComment}
-                    onChange={(e) => setFbComment(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-primary btn-block" style={{ padding: '12px' }}>
-                  Gửi nhận xét
-                </button>
-              </form>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

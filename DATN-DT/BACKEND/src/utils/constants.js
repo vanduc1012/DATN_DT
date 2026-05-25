@@ -5,6 +5,9 @@ const ROLES = {
   USER: 'user',
 };
 
+// ── Super Admin (quyền hạn cao nhất, không thể bị xóa) ───────
+const SUPER_ADMIN_EMAIL = 'admin@gmail.com';
+
 // ── Booking Status ────────────────────────────────────────────
 const BOOKING_STATUS = {
   PENDING: 'pending',       // Chờ xác nhận
@@ -43,6 +46,7 @@ const PAGINATION = {
 
 module.exports = {
   ROLES,
+  SUPER_ADMIN_EMAIL,
   BOOKING_STATUS,
   PAYMENT_STATUS,
   PITCH_STATUS,

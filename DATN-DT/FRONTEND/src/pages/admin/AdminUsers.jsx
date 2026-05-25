@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { userAPI } from '../../api/services';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -7,6 +8,7 @@ const ROLE_LABELS = { user: 'Người dùng', owner: 'Chủ sân', admin: 'Quả
 const ROLE_COLORS = { user: 'var(--info)', owner: 'var(--warning)', admin: 'var(--primary-light)' };
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -173,28 +175,40 @@ export default function AdminUsers() {
                     <td style={{ padding: '14px 14px', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                       {u.createdAt ? format(new Date(u.createdAt), 'dd/MM/yyyy') : '—'}
                     </td>
-                    <td style={{ padding: '14px 14px' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className={`btn btn-sm`}
-                          style={{
-                            fontSize: '0.75rem', padding: '5px 10px',
-                            background: u.isActive ? 'rgba(245,158,11,.12)' : 'rgba(16,185,129,.12)',
-                            color: u.isActive ? 'var(--warning)' : 'var(--success)',
-                            border: `1px solid ${u.isActive ? 'rgba(245,158,11,.25)' : 'rgba(16,185,129,.25)'}`,
-                          }}
-                          onClick={() => handleToggleStatus(u._id)}
-                          disabled={toggling === u._id}
-                        >
-                          {toggling === u._id ? <span className="spinner" /> : u.isActive ? '🔒 Khóa' : '🔓 Mở khóa'}
-                        </button>
-                        {u.role !== 'admin' && (
-                          <button className="btn btn-danger btn-sm" style={{ fontSize: '0.75rem', padding: '5px 10px' }}
-                            onClick={() => setDeleteId(u._id)}>
-                            🗑️
-                          </button>
-                        )}
-                      </div>
+                     <td style={{ padding: '14px 14px' }}>
+                      {(() => {
+                        const isSuperAdminRow = u.email?.toLowerCase() === 'admin@gmail.com';
+                        const isCurrentSuperAdmin = currentUser?.email?.toLowerCase() === 'admin@gmail.com';
+                        const canToggle = !isSuperAdminRow && (u.role !== 'admin' || isCurrentSuperAdmin);
+                        const canDelete = !isSuperAdminRow && (u.role !== 'admin' || isCurrentSuperAdmin);
+
+                        return (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              className={`btn btn-sm`}
+                              style={{
+                                fontSize: '0.75rem', padding: '5px 10px',
+                                background: u.isActive ? 'rgba(245,158,11,.12)' : 'rgba(16,185,129,.12)',
+                                color: u.isActive ? 'var(--warning)' : 'var(--success)',
+                                border: `1px solid ${u.isActive ? 'rgba(245,158,11,.25)' : 'rgba(16,185,129,.25)'}`,
+                                opacity: canToggle ? 1 : 0.5,
+                                cursor: canToggle ? 'pointer' : 'not-allowed',
+                              }}
+                              onClick={() => canToggle && handleToggleStatus(u._id)}
+                              disabled={toggling === u._id || !canToggle}
+                              title={!canToggle ? 'Không có quyền thao tác trên tài khoản này' : ''}
+                            >
+                              {toggling === u._id ? <span className="spinner" /> : u.isActive ? '🔒 Khóa' : '🔓 Mở khóa'}
+                            </button>
+                            {canDelete && (
+                              <button className="btn btn-danger btn-sm" style={{ fontSize: '0.75rem', padding: '5px 10px' }}
+                                onClick={() => setDeleteId(u._id)}>
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

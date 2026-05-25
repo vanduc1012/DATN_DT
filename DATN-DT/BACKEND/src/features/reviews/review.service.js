@@ -70,6 +70,18 @@ const getPitchReviews = async (pitchId, query = {}) => {
 };
 
 /**
+ * Lấy 3 đánh giá gần đây nhất
+ */
+const getRecentReviews = async (limit = 3) => {
+  const reviews = await Review.find()
+    .populate('user', 'name avatar')
+    .populate('pitch', 'name')
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
+  return reviews;
+};
+
+/**
  * Xóa đánh giá (user xóa review của mình, admin xóa bất kỳ)
  */
 const deleteReview = async (reviewId, userId, userRole) => {
@@ -89,4 +101,4 @@ const deleteReview = async (reviewId, userId, userRole) => {
   await Review.findByIdAndDelete(reviewId);
 };
 
-module.exports = { createReview, getPitchReviews, deleteReview };
+module.exports = { createReview, getPitchReviews, getRecentReviews, deleteReview };

@@ -37,6 +37,7 @@ export const bookingAPI = {
 
 export const reviewAPI = {
   getByPitch: (pitchId) => api.get(`/reviews/${pitchId}`),
+  getRecent: () => api.get('/reviews/recent/top'),
   create: (pitchId, data) => api.post(`/reviews/${pitchId}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };

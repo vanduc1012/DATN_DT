@@ -39,7 +39,7 @@ const getUserById = async (req, res, next) => {
 
 const toggleUserStatus = async (req, res, next) => {
   try {
-    const user = await userService.toggleUserStatus(req.params.id);
+    const user = await userService.toggleUserStatus(req.params.id, req.user);
     const msg = user.isActive ? 'Kích hoạt tài khoản thành công' : 'Vô hiệu hóa tài khoản thành công';
     return success(res, user, msg);
   } catch (err) {
@@ -49,7 +49,7 @@ const toggleUserStatus = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
   try {
-    await userService.deleteUser(req.params.id);
+    await userService.deleteUser(req.params.id, req.user);
     return success(res, null, 'Xóa người dùng thành công');
   } catch (err) {
     next(err);

@@ -1,6 +1,6 @@
 const Booking = require('./booking.model');
 const Pitch = require('../pitches/pitch.model');
-const { BOOKING_STATUS, PAGINATION } = require('../../utils/constants');
+const { BOOKING_STATUS, PAGINATION, SUPER_ADMIN_EMAIL } = require('../../utils/constants');
 
 /**
  * Kiểm tra xung đột lịch đặt sân
@@ -11,7 +11,7 @@ const checkConflict = async (pitchId, date, startTime, endTime, excludeBookingId
   const filter = {
     pitch: pitchId,
     date: new Date(date),
-    status: { $nin: [BOOKING_STATUS.CANCELLED] },
+    status: { $nin: [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.COMPLETED] },
     $or: [
       // Booking mới bắt đầu trong khoảng booking cũ
       { startTime: { $lt: endTime }, endTime: { $gt: startTime } },
@@ -44,8 +44,28 @@ const calcTotalPrice = (startTime, endTime, pricePerHour) => {
 /**
  * Tạo booking mới
  */
-const createBooking = async (data, userId) => {
+const createBooking = async (data, requestingUser) => {
   const { pitch: pitchId, date, startTime, endTime, note } = data;
+  const userId = requestingUser.id;
+
+  if (requestingUser.role === 'admin' || requestingUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+    const err = new Error('Tài khoản quản trị viên không thể thực hiện đặt sân.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Ngăn chặn đặt khung giờ đã trôi qua trong ngày hôm nay
+  const reqDateStr = new Date(date).toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  if (reqDateStr === todayStr) {
+    const [sh] = startTime.split(':').map(Number);
+    const currentHour = new Date().getHours();
+    if (sh <= currentHour) {
+      const err = new Error('Không thể đặt khung giờ đã trôi qua trong ngày hôm nay.');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
 
   const pitch = await Pitch.findById(pitchId);
   if (!pitch) {
@@ -221,7 +241,7 @@ const getAvailableSlots = async (pitchId, date) => {
   const bookings = await Booking.find({
     pitch: pitchId,
     date: new Date(date),
-    status: { $nin: [BOOKING_STATUS.CANCELLED] },
+    status: { $nin: [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.COMPLETED] },
   }).select('startTime endTime status');
 
   return {

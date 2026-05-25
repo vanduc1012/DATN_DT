@@ -26,12 +26,10 @@ router.get('/overview', authenticate, requireAdmin, async (req, res, next) => {
     ]);
 
     const revenue = bookings
-      .filter((b) => b.status !== 'cancelled')
-      .reduce((s, b) => s + (b.totalPrice || 0), 0);
-
-    const paidRevenue = bookings
       .filter((b) => b.paymentStatus === 'paid')
       .reduce((s, b) => s + (b.totalPrice || 0), 0);
+
+    const paidRevenue = revenue;
 
     const statusCount = bookings.reduce((acc, b) => {
       acc[b.status] = (acc[b.status] || 0) + 1;
@@ -57,7 +55,7 @@ router.get('/revenue', authenticate, requireAdmin, async (req, res, next) => {
     if (period === 'year') {
       // Doanh thu 12 tháng của năm
       pipeline = [
-        { $match: { status: { $ne: 'cancelled' }, date: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${Number(year) + 1}-01-01`) } } },
+        { $match: { paymentStatus: 'paid', date: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${Number(year) + 1}-01-01`) } } },
         { $group: { _id: { $month: '$date' }, revenue: { $sum: '$totalPrice' }, count: { $sum: 1 } } },
         { $sort: { '_id': 1 } },
       ];
@@ -67,7 +65,7 @@ router.get('/revenue', authenticate, requireAdmin, async (req, res, next) => {
       const end = new Date(start);
       end.setMonth(end.getMonth() + 1);
       pipeline = [
-        { $match: { status: { $ne: 'cancelled' }, date: { $gte: start, $lt: end } } },
+        { $match: { paymentStatus: 'paid', date: { $gte: start, $lt: end } } },
         { $group: { _id: { $dayOfMonth: '$date' }, revenue: { $sum: '$totalPrice' }, count: { $sum: 1 } } },
         { $sort: { '_id': 1 } },
       ];
@@ -77,7 +75,7 @@ router.get('/revenue', authenticate, requireAdmin, async (req, res, next) => {
       const start = new Date(end);
       start.setDate(start.getDate() - 6);
       pipeline = [
-        { $match: { status: { $ne: 'cancelled' }, date: { $gte: start, $lte: end } } },
+        { $match: { paymentStatus: 'paid', date: { $gte: start, $lte: end } } },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } }, revenue: { $sum: '$totalPrice' }, count: { $sum: 1 } } },
         { $sort: { '_id': 1 } },
       ];
@@ -92,7 +90,7 @@ router.get('/revenue', authenticate, requireAdmin, async (req, res, next) => {
 router.get('/top-pitches', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const result = await Booking.aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
+      { $match: { paymentStatus: 'paid' } },
       { $group: { _id: '$pitch', count: { $sum: 1 }, revenue: { $sum: '$totalPrice' } } },
       { $sort: { count: -1 } },
       { $limit: 5 },

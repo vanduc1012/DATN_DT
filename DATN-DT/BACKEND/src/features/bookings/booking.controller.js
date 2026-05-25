@@ -3,7 +3,7 @@ const { success, paginated } = require('../../utils/response');
 
 const createBooking = async (req, res, next) => {
   try {
-    const booking = await bookingService.createBooking(req.body, req.user.id);
+    const booking = await bookingService.createBooking(req.body, req.user);
     return success(res, booking, 'Đặt sân thành công', 201);
   } catch (err) {
     next(err);

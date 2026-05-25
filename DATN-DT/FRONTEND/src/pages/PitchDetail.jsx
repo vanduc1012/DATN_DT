@@ -4,6 +4,7 @@ import { pitchAPI, bookingAPI, reviewAPI } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import ReviewForm from '../components/ReviewForm';
 
 const TYPE_LABELS = { '5-a-side': 'Sân 5', '7-a-side': 'Sân 7', '11-a-side': 'Sân 11' };
 
@@ -30,22 +31,58 @@ export default function PitchDetail() {
 
   const [pitch, setPitch] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('info');
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
-  // Booking state
+  // Booking state — hỗ trợ chọn nhiều slot liên tiếp
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(today);
-  const [bookedSlots, setBookedSlots] = useState([]); // startTimes đã bị đặt
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [note, setNote] = useState('');
   const [booking, setBooking] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Review modal
-  const [showModal, setShowModal] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const isPastSlot = (slotStart) => {
+    if (selectedDate !== today) return false;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const [sh] = slotStart.split(':').map(Number);
+    return sh <= currentHour;
+  };
+
+  const handleStartTimeChange = (newStartTime) => {
+    setStartTime(newStartTime);
+    if (!newStartTime) {
+      setEndTime('');
+      return;
+    }
+    const [h, m] = newStartTime.split(':').map(Number);
+    const defaultEnd = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    const futureBookings = bookedSlots.filter((b) => b.startTime >= newStartTime);
+    let maxEndTime = pitch?.closeTime || '22:00';
+    if (futureBookings.length > 0) {
+      const sorted = [...futureBookings].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      maxEndTime = sorted[0].startTime;
+    }
+    if (defaultEnd <= maxEndTime) {
+      setEndTime(defaultEnd);
+    } else {
+      setEndTime(maxEndTime);
+    }
+  };
+
+  const handleSlotClick = (slot) => {
+    if (startTime === slot.start && endTime === slot.end) {
+      setStartTime('');
+      setEndTime('');
+    } else {
+      handleStartTimeChange(slot.start);
+    }
+  };
 
   // ── Fetch pitch + reviews ─────────────────────────────────
   useEffect(() => {
@@ -66,7 +103,9 @@ export default function PitchDetail() {
         const rRes = await reviewAPI.getByPitch(id);
         if (mounted) setReviews(rRes.data?.data || []);
       } catch {
-        // reviews không load được thì bỏ qua
+        if (mounted) setReviews([]);
+      } finally {
+        if (mounted) setLoadingReviews(false);
       }
     };
     load();
@@ -77,62 +116,56 @@ export default function PitchDetail() {
   useEffect(() => {
     if (!id || !selectedDate) return;
     setLoadingSlots(true);
-    setSelectedSlot(null);
+    setStartTime('');
+    setEndTime('');
     bookingAPI.getAvailableSlots(id, selectedDate)
       .then(({ data }) => {
-        const slots = data?.data || [];
-        // Backend trả về [{startTime, endTime, status}]
-        const booked = slots
-          .filter((s) => s.status === 'booked')
-          .map((s) => s.startTime);
-        setBookedSlots(booked);
+        const bookedSlotsData = data?.data?.bookedSlots || [];
+        setBookedSlots(bookedSlotsData);
       })
       .catch(() => setBookedSlots([]))
       .finally(() => setLoadingSlots(false));
   }, [id, selectedDate]);
 
+  // ── Refresh reviews ──────────────────────────────────────
+  const refreshReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const rRes = await reviewAPI.getByPitch(id);
+      setReviews(rRes.data?.data || []);
+    } catch {
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+    setShowReviewForm(false);
+  };
+
   // ── Book handler ──────────────────────────────────────────
   const handleBook = async () => {
     if (!user) { toast.error('Vui lòng đăng nhập để đặt sân'); return navigate('/login'); }
-    if (!selectedSlot) { toast.error('Vui lòng chọn khung giờ'); return; }
+    if (!startTime || !endTime) { toast.error('Vui lòng chọn khung giờ'); return; }
     setBooking(true);
     try {
       await bookingAPI.create({
         pitch: id,
         date: selectedDate,
-        startTime: selectedSlot.start,
-        endTime: selectedSlot.end,
+        startTime,
+        endTime,
         note: note.trim() || undefined,
       });
       toast.success('🎉 Đặt sân thành công!');
-      setSelectedSlot(null);
+      setStartTime('');
+      setEndTime('');
       setNote('');
       // Refresh slots
       const { data } = await bookingAPI.getAvailableSlots(id, selectedDate);
-      const slots = data?.data || [];
-      setBookedSlots(slots.filter((s) => s.status === 'booked').map((s) => s.startTime));
+      const bookedSlotsData = data?.data?.bookedSlots || [];
+      setBookedSlots(bookedSlotsData);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Đặt sân thất bại');
     } finally {
       setBooking(false);
-    }
-  };
-
-  // ── Review handler ────────────────────────────────────────
-  const handleReview = async (e) => {
-    e.preventDefault();
-    setSubmittingReview(true);
-    try {
-      await reviewAPI.create(id, reviewForm);
-      toast.success('Đã gửi đánh giá!');
-      const { data } = await reviewAPI.getByPitch(id);
-      setReviews(data?.data || []);
-      setShowModal(false);
-      setReviewForm({ rating: 5, comment: '' });
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Gửi đánh giá thất bại');
-    } finally {
-      setSubmittingReview(false);
     }
   };
 
@@ -151,7 +184,36 @@ export default function PitchDetail() {
   if (!pitch) return null;
 
   const allSlots = generateSlots(pitch.openTime, pitch.closeTime);
-  const totalPrice = pitch.pricePerHour || 0;
+  const pricePerHour = pitch.pricePerHour || 0;
+
+  const startTimeOptions = allSlots.filter((slot) => {
+    const isPast = isPastSlot(slot.start);
+    const isAlreadyBooked = bookedSlots.some((b) => b.startTime <= slot.start && b.endTime >= slot.end);
+    return !isPast && !isAlreadyBooked;
+  }).map((slot) => slot.start);
+
+  let maxEndTime = pitch.closeTime || '22:00';
+  if (startTime) {
+    const futureBookings = bookedSlots.filter((b) => b.startTime >= startTime);
+    if (futureBookings.length > 0) {
+      const sorted = [...futureBookings].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      maxEndTime = sorted[0].startTime;
+    }
+  }
+
+  const endTimeOptions = startTime
+    ? allSlots
+        .filter((slot) => slot.start >= startTime && slot.end <= maxEndTime)
+        .map((slot) => slot.end)
+    : [];
+
+  let numHours = 0;
+  if (startTime && endTime) {
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    numHours = (eh * 60 + em - (sh * 60 + sm)) / 60;
+  }
+  const totalPrice = numHours * pricePerHour;
 
   return (
     <div className="page-wrapper">
@@ -189,7 +251,7 @@ export default function PitchDetail() {
             <div className="tabs" style={{ marginBottom: 20 }}>
               {[
                 { key: 'info', label: '📋 Thông tin' },
-                { key: 'reviews', label: `⭐ Đánh giá (${reviews.length})` },
+                { key: 'reviews', label: `⭐ Đánh giá ${loadingReviews ? '' : `(${reviews?.length || 0})`}` },
               ].map(({ key, label }) => (
                 <button key={key} className={`tab-btn ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
                   {label}
@@ -212,7 +274,7 @@ export default function PitchDetail() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-light)' }}>
-                      {totalPrice.toLocaleString('vi-VN')}₫
+                      {pricePerHour.toLocaleString('vi-VN')}₫
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>mỗi giờ</div>
                   </div>
@@ -264,34 +326,85 @@ export default function PitchDetail() {
             {/* Reviews Tab */}
             {tab === 'reviews' && (
               <div>
-                {user && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>✏️ Viết đánh giá</button>
-                  </div>
-                )}
-                {reviews.length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">💬</div>
-                    <h3>Chưa có đánh giá</h3>
-                    <p>Hãy là người đầu tiên đánh giá sân này!</p>
+                {loadingReviews ? (
+                  <div className="loading-state">
+                    <div className="spinner" />
+                    <span>Đang tải đánh giá...</span>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {reviews.map((r) => (
-                      <div key={r._id} className="card">
-                        <div className="card-body">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{r.user?.name || 'Ẩn danh'}</div>
-                            <span style={{ fontSize: '1rem' }}>{'⭐'.repeat(r.rating || 0)}</span>
-                          </div>
-                          {r.comment && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{r.comment}</p>}
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
-                            {r.createdAt ? format(new Date(r.createdAt), 'dd/MM/yyyy') : ''}
-                          </div>
+                  <>
+                    {/* Review Form Section */}
+                    {!showReviewForm && user && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => setShowReviewForm(true)}>
+                          ✏️ Viết đánh giá
+                        </button>
+                      </div>
+                    )}
+
+                    {showReviewForm && (
+                      <div style={{ marginBottom: 20 }}>
+                        <ReviewForm
+                          pitchId={id}
+                          pitchName={pitch.name}
+                          onSuccess={refreshReviews}
+                        />
+                        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            onClick={() => setShowReviewForm(false)}
+                          >
+                            Hủy
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+
+                    {/* Reviews List */}
+                    {reviews.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon">💬</div>
+                        <h3>Chưa có đánh giá</h3>
+                        <p>{user ? 'Hãy là người đầu tiên đánh giá sân này!' : 'Đăng nhập để xem và viết đánh giá'}</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {reviews.map((r) => (
+                          <div key={r._id} className="card">
+                            <div className="card-body">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                                  <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: 'rgba(22,163,74,0.1)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-light)',
+                                    flexShrink: 0
+                                  }}>
+                                    {r.user?.name?.[0]?.toUpperCase() || 'U'}
+                                  </div>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{r.user?.name || 'Ẩn danh'}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                      {r.createdAt ? format(new Date(r.createdAt), 'dd/MM/yyyy HH:mm') : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: '0.95rem', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                                  {'⭐'.repeat(r.rating || 0)}{'☆'.repeat(5 - (r.rating || 0))}
+                                </div>
+                              </div>
+                              {r.comment && (
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+                                  {r.comment}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -305,7 +418,17 @@ export default function PitchDetail() {
               </div>
               <div className="card-body">
 
-                {pitch.status !== 'active' ? (
+                {user && (user.role === 'admin' || user.email?.toLowerCase() === 'admin@gmail.com') ? (
+                  <div style={{ textAlign: 'center', padding: '30px 15px', color: 'var(--danger)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 16 }}>🚫</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.5, color: '#f87171' }}>
+                      Tài khoản Quản trị viên<br />không được phép đặt sân
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.6 }}>
+                      Vui lòng sử dụng tài khoản Khách hàng để thực hiện chức năng đặt sân.
+                    </p>
+                  </div>
+                ) : pitch.status !== 'active' ? (
                   <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--warning)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔧</div>
                     <div style={{ fontWeight: 700 }}>Sân đang bảo trì</div>
@@ -325,24 +448,30 @@ export default function PitchDetail() {
 
                     {/* Slots */}
                     <div className="form-group">
-                      <label className="form-label" style={{ marginBottom: 10 }}>
-                        Khung giờ
-                        {selectedSlot && <span style={{ color: 'var(--primary-light)', marginLeft: 6 }}>— {selectedSlot.label}</span>}
+                      <label className="form-label" style={{ marginBottom: 6 }}>
+                        Trạng thái sân
                       </label>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                        💡 Ô màu đỏ là đã có người đặt. Bạn có thể bấm vào ô trống để chọn nhanh giờ bắt đầu.
+                      </div>
                       {loadingSlots ? (
                         <div style={{ textAlign: 'center', padding: 16 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
                       ) : (
                         <div className="slot-grid">
                           {allSlots.map((slot) => {
-                            const isBooked = bookedSlots.includes(slot.start);
-                            const isSelected = selectedSlot?.start === slot.start;
+                            const isPast = isPastSlot(slot.start);
+                            const isAlreadyBooked = bookedSlots.some((b) => b.startTime <= slot.start && b.endTime >= slot.end);
+                            const isBooked = isPast || isAlreadyBooked;
+                            const isSelected = startTime && endTime && slot.start >= startTime && slot.end <= endTime;
+                            const isAnchor = startTime === slot.start;
                             return (
                               <button
                                 key={slot.start}
                                 className={`slot-btn${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}`}
-                                onClick={() => !isBooked && setSelectedSlot(isSelected ? null : slot)}
+                                onClick={() => !isBooked && handleSlotClick(slot)}
                                 disabled={isBooked}
-                                title={isBooked ? 'Đã được đặt' : slot.label}
+                                title={isPast ? 'Khung giờ đã trôi qua' : isAlreadyBooked ? 'Đã được đặt' : slot.label}
+                                style={isAnchor ? { boxShadow: '0 0 0 2px var(--primary-light)', zIndex: 1 } : {}}
                               >
                                 {slot.start}
                               </button>
@@ -355,8 +484,41 @@ export default function PitchDetail() {
                       )}
                     </div>
 
+                    {/* Time Dropdowns */}
+                    {!loadingSlots && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                        <div className="form-group">
+                          <label className="form-label">Giờ bắt đầu</label>
+                          <select 
+                            className="form-control" 
+                            value={startTime} 
+                            onChange={(e) => handleStartTimeChange(e.target.value)}
+                          >
+                            <option value="">-- Chọn --</option>
+                            {startTimeOptions.map((t) => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Giờ kết thúc</label>
+                          <select 
+                            className="form-control" 
+                            value={endTime} 
+                            onChange={(e) => setEndTime(e.target.value)}
+                            disabled={!startTime}
+                          >
+                            <option value="">-- Chọn --</option>
+                            {endTimeOptions.map((t) => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Note */}
-                    {selectedSlot && (
+                    {numHours > 0 && (
                       <div className="form-group">
                         <label className="form-label">Ghi chú (tùy chọn)</label>
                         <textarea className="form-control" rows={2} placeholder="Thông tin thêm cho chủ sân..."
@@ -365,14 +527,18 @@ export default function PitchDetail() {
                     )}
 
                     {/* Price summary */}
-                    {selectedSlot && (
+                    {numHours > 0 && (
                       <div style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 6 }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Khung giờ</span>
-                          <span style={{ fontWeight: 600 }}>{selectedSlot.label}</span>
+                          <span style={{ fontWeight: 600 }}>{startTime} – {endTime}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Tổng cộng</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: 6 }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Thời lượng</span>
+                          <span style={{ fontWeight: 600 }}>{numHours} giờ × {pricePerHour.toLocaleString('vi-VN')}₫</span>
+                        </div>
+                        <div style={{ borderTop: '1px dashed rgba(22,163,74,0.25)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>Tổng cộng</span>
                           <span style={{ fontWeight: 800, color: 'var(--primary-light)', fontSize: '1.1rem' }}>
                             {totalPrice.toLocaleString('vi-VN')}₫
                           </span>
@@ -383,9 +549,9 @@ export default function PitchDetail() {
                     <button
                       className="btn btn-primary btn-block btn-lg"
                       onClick={handleBook}
-                      disabled={booking || !selectedSlot}
+                      disabled={booking || numHours === 0}
                     >
-                      {booking ? <span className="spinner" /> : '⚡ Đặt sân ngay'}
+                      {booking ? <span className="spinner" /> : `⚡ Đặt sân ngay${numHours > 0 ? ` (${numHours} giờ)` : ''}`}
                     </button>
 
                     {!user && (
@@ -400,48 +566,6 @@ export default function PitchDetail() {
           </div>
         </div>
       </div>
-
-      {/* Review Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">⭐ Viết đánh giá</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleReview}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Điểm đánh giá</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <button key={s} type="button"
-                        style={{ fontSize: '1.8rem', background: 'none', border: 'none', cursor: 'pointer', opacity: s <= reviewForm.rating ? 1 : 0.3, transition: 'opacity 0.15s' }}
-                        onClick={() => setReviewForm((p) => ({ ...p, rating: s }))}>
-                        ⭐
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Nhận xét</label>
-                  <textarea className="form-control" rows={4}
-                    placeholder="Chia sẻ trải nghiệm của bạn..."
-                    value={reviewForm.comment}
-                    onChange={(e) => setReviewForm((p) => ({ ...p, comment: e.target.value }))}
-                    required />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Hủy</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingReview}>
-                  {submittingReview ? <span className="spinner" /> : '📤 Gửi đánh giá'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

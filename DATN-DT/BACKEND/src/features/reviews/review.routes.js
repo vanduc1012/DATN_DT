@@ -14,6 +14,9 @@ const createReviewSchema = Joi.object({
   comment: Joi.string().max(1000).optional(),
 });
 
+// GET  /api/reviews/recent (public — lấy 3 đánh giá gần đây)
+router.get('/recent/top', reviewController.getRecentReviews);
+
 // GET  /api/reviews/:pitchId (public)
 router.get('/:pitchId', reviewController.getPitchReviews);
 

@@ -27,6 +27,16 @@ const getPitchReviews = async (req, res, next) => {
   }
 };
 
+const getRecentReviews = async (req, res, next) => {
+  try {
+    const limit = req.query.limit || 3;
+    const reviews = await reviewService.getRecentReviews(Number(limit));
+    return success(res, reviews, 'Lấy đánh giá gần đây thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
 const deleteReview = async (req, res, next) => {
   try {
     await reviewService.deleteReview(req.params.id, req.user.id, req.user.role);
@@ -36,4 +46,4 @@ const deleteReview = async (req, res, next) => {
   }
 };
 
-module.exports = { createReview, getPitchReviews, deleteReview };
+module.exports = { createReview, getPitchReviews, getRecentReviews, deleteReview };

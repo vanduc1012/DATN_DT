@@ -3,6 +3,7 @@ import { bookingAPI } from '../api/services';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import ReviewForm from '../components/ReviewForm';
 
 const STATUS_CONFIG = {
   pending:   { label: 'Chờ xác nhận', color: 'var(--warning)', icon: '⏳' },
@@ -28,6 +29,7 @@ export default function MyBookings() {
   const [paying, setPaying] = useState(false);
   const [payMethod, setPayMethod] = useState('online');
   const [tab, setTab] = useState('all');
+  const [reviewingBookingId, setReviewingBookingId] = useState(null);
 
   const fetchBookings = async () => {
     try {
@@ -214,6 +216,12 @@ export default function MyBookings() {
                             💳 Thanh toán
                           </button>
                         )}
+                        {b.status === 'completed' && (
+                          <button className="btn btn-sm" style={{ fontSize: '0.75rem', padding: '5px 12px', background: 'rgba(251,146,60,.12)', color: 'var(--accent)', border: '1px solid rgba(251,146,60,.25)' }}
+                            onClick={() => setReviewingBookingId(b._id)}>
+                            ⭐ Đánh giá
+                          </button>
+                        )}
                         {b.paymentStatus === 'paid' && (
                           <span style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 700 }}>✅ Đã TT</span>
                         )}
@@ -311,6 +319,27 @@ export default function MyBookings() {
           </div>
         </div>
       )}
+
+    {/* Review Modal */}
+    {reviewingBookingId && (
+      <div className="modal-overlay" onClick={() => setReviewingBookingId(null)}>
+        <div className="modal" style={{ maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3 className="modal-title">⭐ Đánh giá sân bóng</h3>
+            <button className="modal-close" onClick={() => setReviewingBookingId(null)}>✕</button>
+          </div>
+          <div className="modal-body">
+            {bookings.find((b) => b._id === reviewingBookingId) && (
+              <ReviewForm
+                pitchId={bookings.find((b) => b._id === reviewingBookingId)?.pitch?._id}
+                pitchName={bookings.find((b) => b._id === reviewingBookingId)?.pitch?.name}
+                onSuccess={() => setReviewingBookingId(null)}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

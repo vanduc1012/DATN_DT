@@ -60,6 +60,19 @@ export default function AdminBookings() {
     }
   };
 
+  const handleConfirmPayment = async (booking) => {
+    if (!window.confirm(`Xác nhận khách hàng đã thanh toán ${booking.totalPrice.toLocaleString('vi-VN')}₫ cho đặt sân này?`)) return;
+    try {
+      await bookingAPI.pay(booking._id, 'cash');
+      toast.success('🎉 Xác nhận thanh toán thành công!');
+      setBookings((prev) =>
+        prev.map((b) => b._id === booking._id ? { ...b, paymentStatus: 'paid', paymentMethod: 'cash' } : b)
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Xác nhận thanh toán thất bại');
+    }
+  };
+
   const counts = Object.keys(STATUS_LABELS).reduce((acc, s) => {
     acc[s] = bookings.filter((b) => b.status === s).length;
     return acc;
@@ -122,7 +135,7 @@ export default function AdminBookings() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Người đặt', 'Sân', 'Ngày & Giờ', 'Giá', 'Ghi chú', 'Trạng thái', 'Thao tác'].map((h) => (
+                  {['Người đặt', 'Sân', 'Ngày & Giờ', 'Giá', 'Ghi chú', 'Thanh toán', 'Trạng thái', 'Thao tác'].map((h) => (
                     <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -157,12 +170,29 @@ export default function AdminBookings() {
                     <td style={{ padding: '13px 14px' }}>
                       <span style={{
                         padding: '3px 10px', borderRadius: 100, fontSize: '0.72rem', fontWeight: 700,
+                        background: b.paymentStatus === 'paid' ? 'rgba(16,185,129,.12)' : 'rgba(239,68,68,.12)',
+                        color: b.paymentStatus === 'paid' ? 'var(--success)' : 'var(--danger)',
+                        border: `1px solid ${b.paymentStatus === 'paid' ? 'rgba(16,185,129,.25)' : 'rgba(239,68,68,.25)'}`,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {b.paymentStatus === 'paid' ? '💰 Đã thanh toán' : '❌ Chưa thanh toán'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '13px 14px' }}>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: 100, fontSize: '0.72rem', fontWeight: 700,
                         background: `${STATUS_COLORS[b.status]}22`, color: STATUS_COLORS[b.status],
                         border: `1px solid ${STATUS_COLORS[b.status]}44`,
                       }}>{STATUS_LABELS[b.status] || b.status}</span>
                     </td>
                     <td style={{ padding: '13px 14px' }}>
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'nowrap' }}>
+                        {b.paymentStatus !== 'paid' && b.status !== 'cancelled' && (
+                          <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,.12)', color: 'var(--success)', border: '1px solid rgba(16,185,129,.25)', fontSize: '0.75rem', padding: '5px 10px' }}
+                            onClick={() => handleConfirmPayment(b)}>
+                            💵 Thu tiền
+                          </button>
+                        )}
                         {b.status === 'pending' && (
                           <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,.12)', color: 'var(--success)', border: '1px solid rgba(16,185,129,.25)', fontSize: '0.75rem', padding: '5px 10px' }}
                             onClick={() => setStatusModal({ booking: b, newStatus: 'confirmed' })}>
