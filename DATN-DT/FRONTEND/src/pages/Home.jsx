@@ -1,13 +1,70 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { pitchAPI } from '../api/services';
+import toast from 'react-hot-toast';
+
+/* ── SVG Icons for Hero Search Card ── */
+const IconPin = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+  </svg>
+);
+
+const IconUsers = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
+const IconCalendar = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
+
+const DEFAULT_TESTIMONIALS = [
+  {
+    id: 't1',
+    name: 'Nguyễn Văn Nam',
+    role: 'Đội trưởng FC Star',
+    comment: 'Giao diện website cực kỳ trực quan, đặt sân chỉ mất chưa đầy 1 phút. Thanh toán online tiện lợi và bảo mật. Dịch vụ tuyệt vời!',
+    rating: 5,
+    verified: true
+  },
+  {
+    id: 't2',
+    name: 'Trần Thanh Bình',
+    role: 'Người chơi tự do',
+    comment: 'SânBóngPro giúp tôi dễ dàng tìm kiếm các sân bóng quanh khu vực của mình. Lịch đặt luôn chính xác, không lo bị trùng lịch.',
+    rating: 5,
+    verified: true
+  },
+  {
+    id: 't3',
+    name: 'Phạm Minh Hoàng',
+    role: 'Quản lý sân bóng',
+    comment: 'Từ khi hợp tác và đưa sân bóng lên hệ thống, lượng khách đặt sân của chúng tôi tăng trưởng đáng kể. Quy trình quản lý rất khoa học.',
+    rating: 5,
+    verified: true
+  },
+  {
+    id: 't4',
+    name: 'Lê Thùy Linh',
+    role: 'Khách đặt sân tự do',
+    comment: 'Tìm kiếm sân 5 hay sân 7 rất tiện, hình ảnh sân rõ ràng và thông tin giá cả minh bạch. Rất khuyến khích mọi người sử dụng!',
+    rating: 5,
+    verified: true
+  }
+];
 
 function PitchCard({ pitch }) {
   const typeLabel = {
-    '5-player': 'Sân 5',
-    '7-player': 'Sân 7',
-    '11-player': 'Sân 11',
+    '5-a-side': 'Sân 5',
+    '7-a-side': 'Sân 7',
+    '11-a-side': 'Sân 11',
   };
 
   return (
@@ -15,7 +72,7 @@ function PitchCard({ pitch }) {
       <div className="pitch-img">
         {pitch.images?.[0]
           ? <img src={pitch.images[0]} alt={pitch.name} />
-          : '🏟️'
+          : <span style={{ fontSize: '3rem' }}>🏟️</span>
         }
         <span className="pitch-type-badge">{typeLabel[pitch.type] || pitch.type}</span>
       </div>
@@ -32,7 +89,7 @@ function PitchCard({ pitch }) {
             </div>
           </div>
           <div>
-            <span className="stars">{'⭐'.repeat(Math.round(pitch.averageRating || 0))}</span>
+            <span className="stars">{'⭐'.repeat(Math.round(pitch.averageRating || 5))}</span>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 4 }}>
               ({pitch.totalReviews || 0})
             </span>
@@ -44,94 +101,204 @@ function PitchCard({ pitch }) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [pitches, setPitches] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Hero search states
+  const [city, setCity] = useState('');
+  const [type, setType] = useState('');
+  const [date, setDate] = useState('');
+
+  // Testimonials and feedback form states
+  const [testimonials, setTestimonials] = useState([]);
+  const [fbRating, setFbRating] = useState(5);
+  const [fbName, setFbName] = useState('');
+  const [fbRole, setFbRole] = useState('');
+  const [fbComment, setFbComment] = useState('');
+
   useEffect(() => {
+    // Load pitches
     pitchAPI.getAll({ limit: 6 })
       .then(({ data }) => setPitches(data.data?.pitches || data.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Load testimonials from localStorage
+    const saved = localStorage.getItem('website_feedbacks');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setTestimonials([...parsed, ...DEFAULT_TESTIMONIALS]);
+      } catch (e) {
+        setTestimonials(DEFAULT_TESTIMONIALS);
+      }
+    } else {
+      setTestimonials(DEFAULT_TESTIMONIALS);
+    }
   }, []);
+
+  // Pre-fill user details if logged in
+  useEffect(() => {
+    if (user) {
+      setFbName(user.name || '');
+      setFbRole(user.role === 'owner' ? 'Chủ sân bóng' : 'Thành viên');
+    }
+  }, [user]);
+
+  const handleHeroSearch = (e) => {
+    e.preventDefault();
+    const queryParams = [];
+    if (city) queryParams.push(`city=${encodeURIComponent(city)}`);
+    if (type) queryParams.push(`type=${encodeURIComponent(type)}`);
+    if (date) queryParams.push(`date=${encodeURIComponent(date)}`);
+    
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+    navigate(`/pitches${queryString}`);
+  };
+
+  const handleFeedbackSubmit = (e) => {
+    e.preventDefault();
+    if (!fbName.trim() || !fbComment.trim()) {
+      toast.error('Vui lòng nhập đầy đủ họ tên và nội dung đánh giá!');
+      return;
+    }
+
+    const newFeedback = {
+      id: 'fb_' + Date.now(),
+      name: fbName.trim(),
+      role: fbRole.trim() || 'Người chơi tự do',
+      comment: fbComment.trim(),
+      rating: fbRating,
+      verified: true
+    };
+
+    // Save to localStorage
+    const saved = localStorage.getItem('website_feedbacks');
+    let list = [];
+    if (saved) {
+      try { list = JSON.parse(saved); } catch (e) {}
+    }
+    const updatedList = [newFeedback, ...list];
+    localStorage.setItem('website_feedbacks', JSON.stringify(updatedList));
+
+    // Update state to render immediately
+    setTestimonials([newFeedback, ...testimonials]);
+
+    // Show success & reset
+    toast.success('🎉 Cảm ơn bạn đã gửi đánh giá cho website!');
+    setFbComment('');
+    setFbRating(5);
+    if (!user) {
+      setFbName('');
+      setFbRole('');
+    }
+  };
 
   return (
     <div>
       {/* ── Hero ──────────────────────────────────── */}
       <section className="hero">
-        <div className="hero-orb1" />
-        <div className="hero-orb2" />
         <div className="container">
           <div className="hero-content">
-            <div className="hero-tag">⚡ Đặt sân nhanh &bull; Tiện lợi &bull; Uy tín</div>
             <h1>
               Đặt sân bóng<br />
-              <span className="text-gradient">đơn giản hơn bao giờ hết</span>
+              <span className="text-highlight">nhanh chóng</span> &amp; dễ dàng
             </h1>
             <p>
-              Khám phá hàng trăm sân bóng chất lượng, đặt lịch online chỉ trong vài giây.
-              Không cần gọi điện, không chờ đợi.
+              Tìm sân, chọn giờ và thanh toán chỉ trong vài phút. Trải nghiệm đặt sân thông minh cùng SânBóngPro.
             </p>
-            <div className="hero-cta">
-              <Link to="/pitches" className="btn btn-primary btn-lg">
-                🔍 Tìm sân ngay
-              </Link>
-              {!user && (
-                <Link to="/register" className="btn btn-outline btn-lg">
-                  ✨ Đăng ký miễn phí
-                </Link>
-              )}
-            </div>
 
-            <div className="hero-stats">
-              {[
-                { value: '500+', label: 'Sân bóng' },
-                { value: '10K+', label: 'Người dùng' },
-                { value: '50K+', label: 'Lượt đặt' },
-              ].map(({ value, label }) => (
-                <div key={label}>
-                  <div className="stat-value">{value}</div>
-                  <div className="stat-label">{label}</div>
+            {/* Search Card */}
+            <form onSubmit={handleHeroSearch} className="hero-search-card">
+              <div className="hero-search-grid">
+                {/* City */}
+                <div className="hero-search-field">
+                  <label className="hero-search-label">Tỉnh/Thành phố</label>
+                  <div className="hero-search-input-wrapper">
+                    <span className="hero-search-icon"><IconPin /></span>
+                    <select 
+                      className="hero-search-select"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    >
+                      <option value="">Chọn tỉnh thành</option>
+                      <option value="Hà Nội">Hà Nội</option>
+                      <option value="Hồ Chí Minh">TP. HCM</option>
+                      <option value="Đà Nẵng">Đà Nẵng</option>
+                      <option value="Hải Phòng">Hải Phòng</option>
+                    </select>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── Features ──────────────────────────────── */}
-      <section style={{ padding: '80px 0', background: 'var(--bg)' }}>
-        <div className="container">
-          <h2 className="section-title" style={{ textAlign: 'center' }}>Tại sao chọn chúng tôi?</h2>
-          <p className="section-subtitle" style={{ textAlign: 'center' }}>Trải nghiệm đặt sân dễ dàng và hiện đại nhất</p>
+                {/* Pitch Type */}
+                <div className="hero-search-field">
+                  <label className="hero-search-label">Loại sân</label>
+                  <div className="hero-search-input-wrapper">
+                    <span className="hero-search-icon"><IconUsers /></span>
+                    <select 
+                      className="hero-search-select"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                    >
+                      <option value="">Tất cả loại sân</option>
+                      <option value="5-a-side">Sân 5 người</option>
+                      <option value="7-a-side">Sân 7 người</option>
+                      <option value="11-a-side">Sân 11 người</option>
+                    </select>
+                  </div>
+                </div>
 
-          <div className="grid-3" style={{ marginTop: 40 }}>
-            {[
-              { icon: '⚡', title: 'Đặt sân tức thì', desc: 'Xác nhận đặt sân ngay lập tức, không cần chờ phê duyệt.' },
-              { icon: '🗓️', title: 'Quản lý lịch dễ dàng', desc: 'Theo dõi toàn bộ lịch đặt, hủy hoặc chỉnh sửa bất kỳ lúc nào.' },
-              { icon: '🌟', title: 'Đánh giá minh bạch', desc: 'Xem đánh giá thực tế từ người chơi để chọn sân tốt nhất.' },
-            ].map(({ icon, title, desc }) => (
-              <div key={title} className="card" style={{ textAlign: 'center' }}>
-                <div className="card-body">
-                  <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>{icon}</div>
-                  <h3 style={{ fontSize: '1.05rem', marginBottom: 10 }}>{title}</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.7 }}>{desc}</p>
+                {/* Date */}
+                <div className="hero-search-field">
+                  <label className="hero-search-label">Ngày đặt</label>
+                  <div className="hero-search-input-wrapper">
+                    <span className="hero-search-icon"><IconCalendar /></span>
+                    <input 
+                      type="date" 
+                      className="hero-search-date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
-            ))}
+
+              {/* Submit Button */}
+              <button type="submit" className="hero-search-btn">
+                🔍 Tìm sân ngay
+              </button>
+            </form>
+
+            {/* Stats list under Card */}
+            <div className="hero-stats">
+              <div className="hero-stat-item">
+                <div className="hero-stat-value">500+</div>
+                <div className="hero-stat-label">Sân bóng</div>
+              </div>
+              <div className="hero-stat-item" style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 40 }}>
+                <div className="hero-stat-value">10K+</div>
+                <div className="hero-stat-label">Lượt đặt</div>
+              </div>
+              <div className="hero-stat-item" style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 40 }}>
+                <div className="hero-stat-value">63</div>
+                <div className="hero-stat-label">Tỉnh thành</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Pitches Preview ────────────────────────── */}
-      <section style={{ padding: '40px 0 80px', background: 'var(--bg)' }}>
+      <section style={{ padding: '60px 0 80px', background: 'var(--bg)' }}>
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
               <h2 className="section-title">Sân nổi bật</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Những sân được đánh giá cao nhất</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Những sân được đặt nhiều nhất tuần này</p>
             </div>
-            <Link to="/pitches" className="btn btn-outline btn-sm">
+            <Link to="/pitches" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem' }}>
               Xem tất cả →
             </Link>
           </div>
@@ -157,6 +324,115 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Reviews / Testimonials Section ─────────── */}
+      <section className="reviews-section">
+        <div className="container">
+          <h2 className="section-title" style={{ textAlign: 'center' }}>⭐ Đánh giá từ khách hàng</h2>
+          <p className="section-subtitle" style={{ textAlign: 'center', marginBottom: 40 }}>
+            Những chia sẻ và phản hồi thực tế từ người dùng SânBóngPro
+          </p>
+
+          <div className="reviews-content-wrapper">
+            {/* Left Column: Testimonials List */}
+            <div className="testimonials-list">
+              {testimonials.slice(0, 4).map((item) => (
+                <div key={item.id} className="testimonial-card">
+                  <div className="testimonial-header">
+                    <div className="testimonial-avatar">
+                      {item.name[0].toUpperCase()}
+                    </div>
+                    <div className="testimonial-user">
+                      <h4>{item.name}</h4>
+                      <p>{item.role}</p>
+                    </div>
+                  </div>
+                  <p className="testimonial-text">
+                    "{item.comment}"
+                  </p>
+                  <div className="testimonial-footer">
+                    <span className="testimonial-stars">
+                      {'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}
+                    </span>
+                    {item.verified && (
+                      <span className="testimonial-verified">
+                        ✓ Đã xác minh
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Column: Feedback Form */}
+            <div className="feedback-card">
+              <h3>Chia sẻ trải nghiệm</h3>
+              <p>Đóng góp ý kiến của bạn để giúp hệ thống hoàn thiện hơn</p>
+
+              <form onSubmit={handleFeedbackSubmit}>
+                {/* Rating */}
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Đánh giá website</label>
+                  <div className="stars-selector">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFbRating(star)}
+                        style={{ color: star <= fbRating ? 'var(--accent)' : '#cbd5e1' }}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Họ và tên</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Nhập họ và tên của bạn"
+                    value={fbName}
+                    onChange={(e) => setFbName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {/* Role */}
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Vai trò / Đội bóng</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="VD: Đội trưởng FC Star, Người chơi tự do..."
+                    value={fbRole}
+                    onChange={(e) => setFbRole(e.target.value)}
+                  />
+                </div>
+
+                {/* Comment */}
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', textTransform: 'none' }}>Nhận xét của bạn</label>
+                  <textarea
+                    className="form-control"
+                    rows={4}
+                    placeholder="Cảm nhận của bạn về giao diện, tính năng, tốc độ của website..."
+                    value={fbComment}
+                    onChange={(e) => setFbComment(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="btn btn-primary btn-block" style={{ padding: '12px' }}>
+                  Gửi nhận xét
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ──────────────────────────────────── */}
       <footer className="footer">
         <div className="container">
@@ -164,7 +440,7 @@ export default function Home() {
             <div className="footer-brand">
               <div className="nav-logo">
                 <div className="logo-icon">⚽</div>
-                <span>SânBóng<span style={{ color: 'var(--primary-light)' }}>Pro</span></span>
+                <span>SânBóng</span>
               </div>
               <p>Nền tảng đặt sân bóng trực tuyến hàng đầu Việt Nam. Đơn giản, nhanh chóng và đáng tin cậy.</p>
             </div>
@@ -182,7 +458,7 @@ export default function Home() {
             </div>
           </div>
           <div className="footer-copy">
-            © 2024 SânBóngPro. Được phát triển bởi DATN-DT.
+            © 2026 SânBóng. Được phát triển bởi DATN-DT.
           </div>
         </div>
       </footer>

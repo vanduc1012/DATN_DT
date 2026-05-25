@@ -76,7 +76,28 @@ export default function Pitches() {
     }
   };
 
-  useEffect(() => { fetchPitches(); }, []);
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const initialFilters = {
+      search: searchParams.get('search') || '',
+      type: searchParams.get('type') || '',
+      city: searchParams.get('city') || '',
+      priceRange: searchParams.get('priceRange') || ''
+    };
+    setFilters(initialFilters);
+
+    const queryPayload = {};
+    if (initialFilters.search) queryPayload.search = initialFilters.search;
+    if (initialFilters.type) queryPayload.type = initialFilters.type;
+    if (initialFilters.city) queryPayload.city = initialFilters.city;
+    if (initialFilters.priceRange) {
+      const [min, max] = initialFilters.priceRange.split('-');
+      queryPayload.minPrice = min;
+      queryPayload.maxPrice = max;
+    }
+    setApplied(queryPayload);
+    fetchPitches(queryPayload);
+  }, [window.location.search]);
 
   const handleSearch = (e) => {
     e.preventDefault();
