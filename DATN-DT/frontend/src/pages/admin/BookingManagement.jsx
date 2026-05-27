@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Eye, Filter, RefreshCw, CheckCircle, XCircle, Clock, Banknote } from 'lucide-react';
 import { message, Modal, Select, DatePicker, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { getAllBookings, updateBookingStatus } from '../../config/BookingRequest';
+import { getAllBookings, updateBookingStatus, cancelBookingAdmin } from '../../config/BookingRequest';
 
 const { RangePicker } = DatePicker;
 
@@ -22,8 +22,10 @@ function BookingManagement() {
     const statusConfig = {
         pending: { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
         confirmed: { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+        paid: { label: 'Đã thanh toán', color: 'bg-cyan-100 text-cyan-700', icon: Banknote },
         in_progress: { label: 'Đang bắt đầu', color: 'bg-purple-100 text-purple-700', icon: Clock },
         completed: { label: 'Đã xong', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+        cancelled: { label: 'Đã hủy', color: 'bg-red-100 text-red-700', icon: XCircle },
     };
 
     // Payment method labels
@@ -102,6 +104,24 @@ function BookingManagement() {
         }
     };
 
+    const handleAdminCancel = async (booking) => {
+        Modal.confirm({
+            title: 'Xác nhận hủy đơn hàng',
+            content: 'Bạn có chắc chắn muốn hủy đơn hàng này không? Sân sẽ được mở lại cho người khác.',
+            okText: 'Hủy đơn',
+            cancelText: 'Đóng',
+            onOk: async () => {
+                try {
+                    await cancelBookingAdmin(booking._id);
+                    message.success('Hủy đơn hàng thành công!');
+                    fetchBookings();
+                } catch (error) {
+                    message.error(error.response?.data?.message || 'Hủy đơn hàng thất bại');
+                }
+            },
+        });
+    };
+
     // View detail
     const handleViewDetail = (booking) => {
         setSelectedBooking(booking);
@@ -113,8 +133,10 @@ function BookingManagement() {
         total: bookings.length,
         pending: bookings.filter((b) => b.status === 'pending').length,
         confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+        paid: bookings.filter((b) => b.status === 'paid').length,
         in_progress: bookings.filter((b) => b.status === 'in_progress').length,
         completed: bookings.filter((b) => b.status === 'completed').length,
+        cancelled: bookings.filter((b) => b.status === 'cancelled').length,
     };
 
     return (
@@ -126,7 +148,7 @@ function BookingManagement() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div>
@@ -157,6 +179,17 @@ function BookingManagement() {
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                             <CheckCircle className="w-6 h-6 text-blue-600" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Đã thanh toán</p>
+                            <p className="text-2xl font-bold text-cyan-600">{stats.paid}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                            <Banknote className="w-6 h-6 text-cyan-600" />
                         </div>
                     </div>
                 </div>
@@ -198,18 +231,11 @@ function BookingManagement() {
                             { value: 'all', label: 'Tất cả trạng thái' },
                             { value: 'pending', label: 'Chờ xác nhận' },
                             { value: 'confirmed', label: 'Đã xác nhận' },
+                            { value: 'paid', label: 'Đã thanh toán' },
                             { value: 'in_progress', label: 'Đang bắt đầu' },
                             { value: 'completed', label: 'Đã xong' },
+                            { value: 'cancelled', label: 'Đã hủy' },
                         ]}
-                    />
-
-                    {/* Date Range */}
-                    <RangePicker
-                        value={dateRange}
-                        onChange={setDateRange}
-                        format="DD/MM/YYYY"
-                        placeholder={['Từ ngày', 'Đến ngày']}
-                        className="min-w-[250px]"
                     />
 
                     {/* Search Button */}
@@ -312,20 +338,32 @@ function BookingManagement() {
                                                 options={[
                                                     { value: 'pending', label: 'Chờ xác nhận' },
                                                     { value: 'confirmed', label: 'Đã xác nhận' },
+                                                    { value: 'paid', label: 'Đã thanh toán' },
                                                     { value: 'in_progress', label: 'Đang diễn ra' },
                                                     { value: 'completed', label: 'Đã xong' },
+                                                    { value: 'cancelled', label: 'Đã hủy' },
                                                 ]}
                                             />
                                         </td>
                                         <td className="py-4 px-4">
-                                            <Tooltip title="Xem chi tiết">
-                                                <button
-                                                    onClick={() => handleViewDetail(booking)}
-                                                    className="p-2 text-gray-500 hover:text-[#16A34A] hover:bg-gray-100 rounded-lg transition-colors"
-                                                >
-                                                    <Eye className="w-5 h-5" />
-                                                </button>
-                                            </Tooltip>
+                                            <div className="flex items-center gap-2">
+                                                <Tooltip title="Xem chi tiết">
+                                                    <button
+                                                        onClick={() => handleViewDetail(booking)}
+                                                        className="p-2 text-gray-500 hover:text-[#16A34A] hover:bg-gray-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Eye className="w-5 h-5" />
+                                                    </button>
+                                                </Tooltip>
+                                                {booking.status !== 'cancelled' && (
+                                                    <button
+                                                        onClick={() => handleAdminCancel(booking)}
+                                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors"
+                                                    >
+                                                        Hủy
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -465,8 +503,10 @@ function BookingManagement() {
                                 options={[
                                     { value: 'pending', label: '⏳ Chờ xác nhận' },
                                     { value: 'confirmed', label: '✅ Đã xác nhận' },
+                                    { value: 'paid', label: '💰 Đã thanh toán' },
                                     { value: 'in_progress', label: '🏃 Đang bắt đầu' },
                                     { value: 'completed', label: '✅ Đã xong' },
+                                    { value: 'cancelled', label: '❌ Đã hủy' },
                                 ]}
                             />
                         </div>

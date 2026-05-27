@@ -77,6 +77,25 @@ class BookingController {
         }).send(res);
     }
 
+    async cancelBooking(req, res) {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const booking = await bookingService.cancelBooking(id, userId);
+        return new OK({
+            message: 'Hủy đơn đặt sân thành công',
+            metadata: booking,
+        }).send(res);
+    }
+
+    async cancelBookingAdmin(req, res) {
+        const { id } = req.params;
+        const booking = await bookingService.cancelBooking(id, null, true);
+        return new OK({
+            message: 'Hủy đơn đặt sân thành công',
+            metadata: booking,
+        }).send(res);
+    }
+
     // Admin: Get all bookings with filters
     async getAllBookingsAdmin(req, res) {
         const { page = 1, limit = 10, status, search, startDate, endDate } = req.query;

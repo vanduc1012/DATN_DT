@@ -34,6 +34,12 @@ export const cancelBooking = async (id) => {
     return response.data;
 };
 
+// [Admin] Cancel booking
+export const cancelBookingAdmin = async (id) => {
+    const response = await apiClient.put(`${API_URL}/api/bookings/admin/cancel/${id}`);
+    return response.data;
+};
+
 // Verify MoMo Payment
 export const verifyMomoPayment = async (bookingId) => {
     const response = await apiClient.put(`${API_URL}/api/bookings/verify-momo/${bookingId}`);

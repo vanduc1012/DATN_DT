@@ -11,10 +11,12 @@ router.get('/field/:fieldId', asyncHandler(bookingController.getBookingsByField)
 router.get('/my-bookings', authUser, asyncHandler(bookingController.getMyBookings));
 router.put('/verify-momo/:bookingId', authUser, asyncHandler(bookingController.verifyMomoPayment));
 router.put('/verify-vnpay/:bookingId', authUser, asyncHandler(bookingController.verifyVnpayPayment));
+router.put('/cancel/:id', authUser, asyncHandler(bookingController.cancelBooking));
 router.get('/:id', asyncHandler(bookingController.getBookingById));
 
 // Admin routes (Admin only)
 router.get('/admin/all', authAdmin, asyncHandler(bookingController.getAllBookingsAdmin));
 router.put('/admin/status/:bookingId', authAdmin, asyncHandler(bookingController.updateBookingStatusAdmin));
+router.put('/admin/cancel/:id', authAdmin, asyncHandler(bookingController.cancelBookingAdmin));
 
 module.exports = router;

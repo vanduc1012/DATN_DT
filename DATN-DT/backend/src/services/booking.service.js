@@ -1,7 +1,7 @@
 const modelBooking = require('../models/booking.model');
 const Field = require('../models/field.model');
 const mongoose = require('mongoose');
-const { ConflictRequestError } = require('../core/error.response');
+const { ConflictRequestError, ForbiddenError, NotFoundError } = require('../core/error.response');
 
 const crypto = require('crypto');
 const https = require('https');
@@ -420,6 +420,57 @@ class BookingService {
         };
     }
 
+    async findBookingForUpdate(id) {
+        let booking = null;
+
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            booking = await modelBooking
+                .findById(id)
+                .populate('fieldId', 'name address')
+                .populate('userId', 'fullName email');
+        }
+
+        if (!booking) {
+            const groupBooking = await modelBooking
+                .findOne({ bookingId: id })
+                .populate('fieldId', 'name address')
+                .populate('userId', 'fullName email');
+            if (groupBooking) booking = groupBooking;
+        }
+
+        return booking;
+    }
+
+    async cancelBooking(id, userId, isAdmin = false) {
+        const booking = await this.findBookingForUpdate(id);
+        if (!booking) {
+            throw new NotFoundError('Không tìm thấy đơn đặt sân');
+        }
+
+        if (!isAdmin && String(booking.userId._id || booking.userId) !== String(userId)) {
+            throw new ForbiddenError('Bạn không có quyền hủy đơn đặt sân này');
+        }
+
+        const query = booking.bookingId ? { bookingId: booking.bookingId } : { _id: booking._id };
+
+        const updateResult = await modelBooking.updateMany(query, {
+            status: 'cancelled',
+        });
+
+        if (updateResult.matchedCount === 0) {
+            throw new NotFoundError('Không tìm thấy đơn đặt sân');
+        }
+
+        const updatedBooking = await modelBooking
+            .findOne(query)
+            .populate('fieldId', 'name address')
+            .populate('userId', 'fullName email');
+
+        await this.sendStatusUpdateNotification(updatedBooking, 'cancelled');
+
+        return updatedBooking;
+    }
+
     // Admin: Update booking status
     async updateBookingStatus(bookingId, status) {
         const validStatuses = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
@@ -427,19 +478,26 @@ class BookingService {
             throw new Error('Trạng thái không hợp lệ');
         }
 
-        const booking = await modelBooking
-            .findByIdAndUpdate(bookingId, { status }, { new: true })
+        const booking = await this.findBookingForUpdate(bookingId);
+        if (!booking) {
+            throw new NotFoundError('Không tìm thấy đơn hàng');
+        }
+
+        const query = booking.bookingId ? { bookingId: booking.bookingId } : { _id: booking._id };
+
+        const updateResult = await modelBooking.updateMany(query, { status });
+        if (updateResult.matchedCount === 0) {
+            throw new NotFoundError('Không tìm thấy đơn hàng');
+        }
+
+        const updatedBooking = await modelBooking
+            .findOne(query)
             .populate('fieldId', 'name address')
             .populate('userId', 'fullName email');
 
-        if (!booking) {
-            throw new Error('Không tìm thấy đơn hàng');
-        }
+        await this.sendStatusUpdateNotification(updatedBooking, status);
 
-        // Send notification for status update
-        await this.sendStatusUpdateNotification(booking, status);
-
-        return booking;
+        return updatedBooking;
     }
 
     // Helper: Send booking notification
