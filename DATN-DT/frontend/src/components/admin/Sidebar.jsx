@@ -85,25 +85,11 @@ function Sidebar() {
             {/* Logo */}
             <div className="h-[72px] px-6 flex items-center border-b border-gray-100">
                 <Link to="/admin" className="flex items-center gap-2.5">
-                    <svg viewBox="0 0 40 40" className="w-9 h-9" fill="none">
-                        <rect
-                            x="2"
-                            y="6"
-                            width="36"
-                            height="28"
-                            rx="3"
-                            stroke="#16A34A"
-                            strokeWidth="2.5"
-                            fill="none"
-                        />
-                        <line x1="20" y1="6" x2="20" y2="34" stroke="#16A34A" strokeWidth="2" />
-                        <circle cx="20" cy="20" r="5" stroke="#16A34A" strokeWidth="2" fill="none" />
-                        <rect x="2" y="13" width="6" height="14" stroke="#16A34A" strokeWidth="1.5" fill="none" />
-                        <rect x="32" y="13" width="6" height="14" stroke="#16A34A" strokeWidth="1.5" fill="none" />
-                    </svg>
+                    <div className="relative w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#16A34A] to-[#22C55E] rounded">
+                        <span className="font-bold text-white text-base">A</span>
+                    </div>
                     <div>
-                        <span className="text-lg font-bold text-[#16A34A]">SânBóng</span>
-                        <span className="text-lg font-bold text-gray-800">Pro</span>
+                        <span className="text-lg font-bold text-[#16A34A]">AloBooking</span>
                         <span className="block text-[10px] text-gray-400 -mt-1">Admin Panel</span>
                     </div>
                 </Link>

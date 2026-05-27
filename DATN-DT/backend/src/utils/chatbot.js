@@ -109,7 +109,7 @@ async function getDiscountsShort() {
 }
 
 /**
- * AI tư vấn sân bóng - Tối ưu token
+ * AI tư vấn đặt sân trên AloBooking - Tối ưu token
  */
 async function askFieldAssistant(question, userId) {
     try {
@@ -167,7 +167,7 @@ async function askFieldAssistant(question, userId) {
         }
 
         // Prompt ngắn gọn
-        const prompt = `Bạn là SânBóngBot, tư vấn đặt sân bóng đá.
+        const prompt = `Bạn là AloBookingBot, tư vấn đặt sân bóng đá.
 
 DỮ LIỆU:
 ${contextData}

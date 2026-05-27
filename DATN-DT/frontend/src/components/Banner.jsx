@@ -72,7 +72,7 @@ function Banner() {
                             </h1>
                             <p className="text-lg text-white/70 max-w-lg leading-relaxed">
                                 Tìm sân, chọn giờ và thanh toán chỉ trong vài phút. Trải nghiệm đặt sân thông minh cùng
-                                SânBóngPro.
+                                AloBooking.
                             </p>
                         </div>
 

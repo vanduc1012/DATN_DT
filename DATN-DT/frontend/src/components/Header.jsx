@@ -165,48 +165,12 @@ function Header() {
                 <div className="flex items-center justify-between h-[72px]">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2.5 group">
-                        {/* Football Field Icon */}
-                        <div className="relative w-10 h-10 flex items-center justify-center">
-                            <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
-                                {/* Outer rounded rectangle */}
-                                <rect
-                                    x="2"
-                                    y="6"
-                                    width="36"
-                                    height="28"
-                                    rx="3"
-                                    stroke="#16A34A"
-                                    strokeWidth="2.5"
-                                    fill="none"
-                                />
-                                {/* Center line */}
-                                <line x1="20" y1="6" x2="20" y2="34" stroke="#16A34A" strokeWidth="2" />
-                                {/* Center circle */}
-                                <circle cx="20" cy="20" r="5" stroke="#16A34A" strokeWidth="2" fill="none" />
-                                {/* Left goal area */}
-                                <rect
-                                    x="2"
-                                    y="13"
-                                    width="6"
-                                    height="14"
-                                    stroke="#16A34A"
-                                    strokeWidth="1.5"
-                                    fill="none"
-                                />
-                                {/* Right goal area */}
-                                <rect
-                                    x="32"
-                                    y="13"
-                                    width="6"
-                                    height="14"
-                                    stroke="#16A34A"
-                                    strokeWidth="1.5"
-                                    fill="none"
-                                />
-                            </svg>
+                        {/* AloBooking Logo */}
+                        <div className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-[#16A34A] to-[#22C55E] rounded-lg">
+                            <span className="font-bold text-white text-lg">A</span>
                         </div>
                         <span className="text-xl font-bold text-[#16A34A] tracking-tight">
-                            SânBóng<span className="text-gray-800"></span>
+                            AloBooking
                         </span>
                     </Link>
 

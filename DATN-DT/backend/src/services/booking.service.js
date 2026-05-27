@@ -154,7 +154,7 @@ class BookingService {
 
                 const requestBody = JSON.stringify({
                     partnerCode,
-                    partnerName: 'San Bong ProMax',
+                    partnerName: 'AloBooking',
                     storeId: 'SanBongProMax',
                     requestId,
                     amount,
