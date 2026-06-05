@@ -122,8 +122,8 @@ class BookingService {
                 const orderId = bookingId + generatePayID(); // Use the passed UUID as orderId
                 const requestId = orderId;
                 const orderInfo = `Thanh toan don hang ${bookingId}`;
-                const redirectUrl = `http://localhost:5173/booking-success/${bookingId}`; // Redirect back to generic success page
-                const ipnUrl = 'http://localhost:3000/api/payment/momo'; // Should serve via ngrok
+                const redirectUrl = `http://sanbongprovn.io.vn//booking-success/${bookingId}`; // Redirect back to generic success page
+                const ipnUrl = 'http://sanbongprovn.io.vn//api/payment/momo'; // Should serve via ngrok
                 const requestType = 'payWithMethod';
                 const amount = totalPrice.toString(); // Amount must be string (use discounted price)
                 const extraData = '';
@@ -221,7 +221,7 @@ class BookingService {
                 vnp_TxnRef: `${bookingId}${generatePayID()}`, // Fixed: remove space and +
                 vnp_OrderInfo: `Thanh toan don hang ${bookingId}`,
                 vnp_OrderType: ProductCode.Other,
-                vnp_ReturnUrl: `http://localhost:5173/booking-success/${bookingId}`, // Redirect về frontend
+                vnp_ReturnUrl: `http://sanbongprovn.io.vn/booking-success/${bookingId}`, // Redirect về frontend
                 vnp_Locale: VnpLocale.VN,
                 vnp_CreateDate: dateFormat(new Date()),
                 vnp_ExpireDate: dateFormat(tomorrow),
