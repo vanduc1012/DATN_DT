@@ -12,7 +12,7 @@ const { initSocket } = require('./config/socket');
 
 const app = express();
 const port = process.env.PORT || 3000;
-console.log("URL_CLIENT =", process.env.URL_CLIENT);
+
 connectDB();
 
 app.use(express.json());
@@ -24,23 +24,34 @@ const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://datn-dt.vercel.app',
+    'https://datn-3j79n4hob-vanduc1012-s-projects.vercel.app',
     normalizeOrigin(process.env.URL_CLIENT),
 ].filter(Boolean);
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin) return callback(null, true);
+console.log('URL_CLIENT =', process.env.URL_CLIENT);
+console.log('allowedOrigins =', allowedOrigins);
 
-            if (allowedOrigins.includes(normalizeOrigin(origin))) {
-                return callback(null, true);
-            }
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
 
-            return callback(new Error('Not allowed by CORS'));
-        },
-        credentials: true,
-    }),
-);
+        const normalizedOrigin = normalizeOrigin(origin);
+
+        if (allowedOrigins.includes(normalizedOrigin)) {
+            return callback(null, true);
+        }
+
+        console.log('Blocked by CORS:', normalizedOrigin);
+        return callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads/avatars')));
 
@@ -54,6 +65,8 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+
     const statusCode = err.statusCode || 500;
 
     res.status(statusCode).json({
