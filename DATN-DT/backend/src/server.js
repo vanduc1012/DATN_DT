@@ -24,11 +24,8 @@ const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
-];
-
-if (process.env.URL_CLIENT) {
-    allowedOrigins.push(normalizeOrigin(process.env.URL_CLIENT));
-}
+    normalizeOrigin(process.env.URL_CLIENT),
+].filter(Boolean);
 
 app.use(
     cors({

@@ -5,8 +5,7 @@ let io = null;
 
 function initSocket(server) {
     const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-    if (process.env.URL_CLIENT) allowedOrigins.push(normalizeOrigin(process.env.URL_CLIENT));
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', normalizeOrigin(process.env.URL_CLIENT)].filter(Boolean);
 
     io = new Server(server, {
         cors: {
