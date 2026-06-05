@@ -12,7 +12,7 @@ const { initSocket } = require('./config/socket');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
+console.log("URL_CLIENT =", process.env.URL_CLIENT);
 connectDB();
 
 app.use(express.json());
