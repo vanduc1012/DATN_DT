@@ -1,13 +1,12 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const connectDB = async () => {
     try {
-        if (!process.env.CONNECT_DB) {
-            throw new Error('CONNECT_DB is missing');
-        }
-
-        console.log('Connecting to MongoDB...');
+        console.log('CONNECT_DB exists:', !!process.env.CONNECT_DB);
+        console.log(
+            'Mongo URI:',
+            process.env.CONNECT_DB?.replace(/\/\/.*@/, '//***@')
+        );
 
         await mongoose.connect(process.env.CONNECT_DB, {
             serverSelectionTimeoutMS: 10000,
@@ -15,7 +14,7 @@ const connectDB = async () => {
 
         console.log('✅ MongoDB connected');
     } catch (error) {
-        console.error('❌ Failed to connect to MongoDB:', error.message);
+        console.error('❌ MongoDB connection error:', error);
     }
 };
 
