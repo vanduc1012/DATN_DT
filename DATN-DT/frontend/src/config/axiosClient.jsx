@@ -7,7 +7,7 @@ export class ApiClient {
         this.baseURL = baseURL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
         this.axiosInstance = axios.create({
             baseURL: this.baseURL,
-            timeout: 10000,
+            timeout: 30000,
             withCredentials: true,
         });
 

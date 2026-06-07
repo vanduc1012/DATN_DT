@@ -3,27 +3,26 @@ const { OK } = require('../core/success.response');
 const UserService = require('../services/users.service');
 
 function setCookie(res, token, refreshToken) {
-    // Cookie token
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.cookie('token', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'Strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'Strict' : 'Lax',
         maxAge: 15 * 60 * 1000,
     });
 
-    // Cookie trạng thái login
     res.cookie('logged', 1, {
         httpOnly: false,
-        secure: true,
-        sameSite: 'Strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'Strict' : 'Lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Cookie refreshToken
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'Strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'Strict' : 'Lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 }
@@ -91,18 +90,20 @@ class UserController {
         }
         const { token } = await UserService.refreshToken(refreshToken);
 
+        const isProduction = process.env.NODE_ENV === 'production';
+
         res.cookie('token', token, {
-            httpOnly: true, // Chặn truy cập từ JavaScript (bảo mật hơn)
-            secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
-            sameSite: 'Strict', // Chống tấn công CSRF
-            maxAge: 15 * 60 * 1000, // 15 phút
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'Strict' : 'Lax',
+            maxAge: 15 * 60 * 1000,
         });
 
         res.cookie('logged', 1, {
-            httpOnly: false, // Chặn truy cập từ JavaScript (bảo mật hơn)
-            secure: true, // Chỉ gửi trên HTTPS (để đảm bảo an toàn)
-            sameSite: 'Strict', // Chống tấn công CSRF
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+            httpOnly: false,
+            secure: isProduction,
+            sameSite: isProduction ? 'Strict' : 'Lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         const data = {
@@ -186,10 +187,12 @@ class UserController {
     async forgotPassword(req, res) {
         const { email } = req.body;
         const { token, otp } = await UserService.forgotPassword(email);
+        const isProduction = process.env.NODE_ENV === 'production';
+
         res.cookie('tokenResetPassword', token, {
             httpOnly: false,
-            secure: true,
-            sameSite: 'Strict',
+            secure: isProduction,
+            sameSite: isProduction ? 'Strict' : 'Lax',
             maxAge: 10 * 60 * 1000,
         });
         new OK({ message: 'success', metadata: { token, otp } }).send(res);
@@ -213,6 +216,38 @@ class UserController {
         const { id } = req.user;
         const data = await UserService.getMessageChatbot(id);
         new OK({ message: 'success', metadata: data }).send(res);
+    }
+
+    // DEV ONLY - Create admin user for testing
+    async createAdminUser(req, res) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new BadRequestError('Không được phép trong production');
+        }
+        const { email, password, fullName } = req.body;
+        if (!email || !password) {
+            throw new BadRequestError('Vui lòng nhập email và password');
+        }
+        const bcrypt = require('bcrypt');
+        const modelUser = require('../models/users.model');
+
+        const existingUser = await modelUser.findOne({ email });
+        if (existingUser) {
+            throw new BadRequestError('Email đã tồn tại');
+        }
+
+        const saltRounds = 10;
+        const salt = bcrypt.genSaltSync(saltRounds);
+        const passwordHash = bcrypt.hashSync(password, salt);
+
+        const newUser = await modelUser.create({
+            fullName: fullName || 'Admin',
+            email,
+            password: passwordHash,
+            isAdmin: true,
+            typeLogin: 'email',
+        });
+
+        new OK({ message: 'Tạo admin thành công', metadata: { email: newUser.email } }).send(res);
     }
 }
 
