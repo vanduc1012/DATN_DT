@@ -1,30 +1,12 @@
 const { BadRequestError } = require('../core/error.response');
 const { OK } = require('../core/success.response');
 const UserService = require('../services/users.service');
+const { getCookieOptions } = require('../utils/cookieOptions');
 
 function setCookie(res, token, refreshToken) {
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'Strict' : 'Lax',
-        maxAge: 15 * 60 * 1000,
-    });
-
-    res.cookie('logged', 1, {
-        httpOnly: false,
-        secure: isProduction,
-        sameSite: isProduction ? 'Strict' : 'Lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'Strict' : 'Lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getCookieOptions({ httpOnly: true, maxAge: 15 * 60 * 1000 }));
+    res.cookie('logged', 1, getCookieOptions({ httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 }));
+    res.cookie('refreshToken', refreshToken, getCookieOptions({ httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 }));
 }
 
 class UserController {
@@ -90,21 +72,8 @@ class UserController {
         }
         const { token } = await UserService.refreshToken(refreshToken);
 
-        const isProduction = process.env.NODE_ENV === 'production';
-
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? 'Strict' : 'Lax',
-            maxAge: 15 * 60 * 1000,
-        });
-
-        res.cookie('logged', 1, {
-            httpOnly: false,
-            secure: isProduction,
-            sameSite: isProduction ? 'Strict' : 'Lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('token', token, getCookieOptions({ httpOnly: true, maxAge: 15 * 60 * 1000 }));
+        res.cookie('logged', 1, getCookieOptions({ httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 }));
 
         const data = {
             token,
@@ -187,14 +156,8 @@ class UserController {
     async forgotPassword(req, res) {
         const { email } = req.body;
         const { token, otp } = await UserService.forgotPassword(email);
-        const isProduction = process.env.NODE_ENV === 'production';
 
-        res.cookie('tokenResetPassword', token, {
-            httpOnly: false,
-            secure: isProduction,
-            sameSite: isProduction ? 'Strict' : 'Lax',
-            maxAge: 10 * 60 * 1000,
-        });
+        res.cookie('tokenResetPassword', token, getCookieOptions({ httpOnly: false, maxAge: 10 * 60 * 1000 }));
         new OK({ message: 'success', metadata: { token, otp } }).send(res);
     }
 

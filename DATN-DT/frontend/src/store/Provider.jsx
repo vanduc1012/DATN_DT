@@ -38,12 +38,7 @@ export function Provider({ children }) {
     };
 
     useEffect(() => {
-        const token = cookies.get('logged');
-        if (token) {
-            fetchAuth();
-        } else {
-            setAuthChecked(true);
-        }
+        fetchAuth();
     }, []);
 
     return (

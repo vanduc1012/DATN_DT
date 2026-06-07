@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import { requestLogin, requestLoginGoogle } from '../config/UserRequest';
 import { useStore } from '../hooks/useStore';
 import { message } from 'antd';
+import cookies from 'js-cookie';
 import Footer from '../components/Footer';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
@@ -30,8 +31,9 @@ function LoginUser() {
         e.preventDefault();
         try {
             await requestLogin({ ...formData, rememberMe });
+            cookies.set('logged', '1', { expires: 7 });
+            await fetchAuth();
             message.success('Đăng nhập thành công!');
-            fetchAuth();
             navigate('/');
         } catch (error) {
             message.error(error.response.data.message);
