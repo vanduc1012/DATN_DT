@@ -105,7 +105,7 @@ function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/faq" className="text-gray-500 hover:text-[#16A34A] transition-colors">
+                                <Link to="/cau-hoi-thuong-gap" className="text-gray-500 hover:text-[#16A34A] transition-colors">
                                     Câu hỏi thường gặp
                                 </Link>
                             </li>

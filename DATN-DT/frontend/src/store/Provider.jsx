@@ -4,7 +4,6 @@ import cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { requestAuth } from '../config/UserRequest';
 import { ToastContainer } from 'react-toastify';
-
 export function Provider({ children }) {
     const [dataUser, setDataUser] = useState({});
     const [authChecked, setAuthChecked] = useState(false);

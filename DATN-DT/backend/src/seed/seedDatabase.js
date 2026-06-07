@@ -96,9 +96,10 @@ const seedUsers = async () => {
             typeLogin: 'email',
         },
         {
-            fullName: 'Nguyễn Văn Đức',
+            fullName: 'Trần Văn Đức',
             email: 'duc30072004@gmail.com',
             password: hashPassword(DEFAULT_PASSWORD),
+            isAdmin: true,
             phone: '0902000002',
             address: 'Quận 7, TP.HCM',
             birthDay: new Date('2004-07-30'),

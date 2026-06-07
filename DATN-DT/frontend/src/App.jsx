@@ -5,8 +5,6 @@ import FeaturedFields from './components/FeaturedFields';
 import Feedback from './components/Feedback';
 import Footer from './components/Footer';
 import HomeBlog from './components/HomeBlog';
-import Chatbot from './components/ChatBot';
-
 function App() {
     return (
         <div className="min-h-screen bg-gray-50 font-['Inter',sans-serif]">
@@ -16,7 +14,6 @@ function App() {
             <Feedback />
             <HomeBlog />
             <Footer />
-            <Chatbot />
         </div>
     );
 }

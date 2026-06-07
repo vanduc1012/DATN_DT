@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Button, Input, Spin, Badge, Tooltip, Typography } from 'antd';
+import { Button, Input, Spin, Badge, Tooltip, Typography, Tag } from 'antd';
 import { SendOutlined, CloseOutlined, CustomerServiceOutlined } from '@ant-design/icons';
 import { useStore } from '../hooks/useStore';
 import { useNavigate } from 'react-router-dom';
@@ -7,23 +7,51 @@ import { requestChatbot, requestGetMessageChatbot } from '../config/UserRequest'
 
 const { Text } = Typography;
 
+const WELCOME_MESSAGE = {
+    _id: 'welcome',
+    sender: 'bot',
+    content:
+        '⚽ Xin chào! Tôi là AloBookingBot\n\nTôi có thể giúp bạn:\n• Tư vấn sân trống theo ngày/giờ/khu vực\n• Gợi ý sân 5/7/11 người\n• Đặt sân trực tiếp trong chat\n• Tra cứu / hủy đơn\n• Tư vấn giá, khuyến mãi, thanh toán\n\nChọn nút gợi ý bên dưới hoặc nhập câu hỏi!',
+    timestamp: new Date(),
+    metadata: {
+        suggestions: ['Đặt sân', 'Xem sân trống', 'Bảng giá', 'Liên hệ'],
+    },
+};
+
+const QUICK_ACTIONS = [
+    { icon: '⚽', text: 'Đặt sân' },
+    { icon: '📅', text: 'Xem sân trống' },
+    { icon: '💰', text: 'Bảng giá' },
+    { icon: '📞', text: 'Liên hệ' },
+];
+
+const INTENT_LABELS = {
+    booking: 'Đặt sân',
+    availability: 'Lịch trống',
+    price: 'Bảng giá',
+    suggest: 'Gợi ý sân',
+    promotion: 'Khuyến mãi',
+    payment: 'Thanh toán',
+    info: 'Thông tin',
+    lookup: 'Tra cứu',
+    cancel: 'Hủy đơn',
+    support: 'Hỗ trợ',
+    unknown: 'Hỗ trợ',
+    nearest: 'Khung giờ gần nhất',
+    greeting: 'Chào mừng',
+    reschedule: 'Đổi lịch',
+};
+
 function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+    const [suggestions, setSuggestions] = useState(WELCOME_MESSAGE.metadata.suggestions);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const [unreadCount, setUnreadCount] = useState(0);
     const { dataUser } = useStore();
     const navigate = useNavigate();
-
-    // Quick questions
-    const quickQuestions = [
-        { icon: '💰', text: 'Giá thuê sân' },
-        { icon: '⏰', text: 'Giờ mở cửa' },
-        { icon: '📅', text: 'Khung giờ trống hôm nay' },
-        { icon: '📋', text: 'Cách đặt sân' },
-    ];
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -39,18 +67,16 @@ function Chatbot() {
         const fetchMessageChatbot = async () => {
             try {
                 const res = await requestGetMessageChatbot();
-                setMessages(res.metadata);
+                if (res.metadata?.length) {
+                    setMessages(res.metadata);
+                    const lastBot = [...res.metadata].reverse().find((m) => m.sender === 'bot');
+                    if (lastBot?.metadata?.suggestions) {
+                        setSuggestions(lastBot.metadata.suggestions);
+                    }
+                }
             } catch (error) {
                 console.error('Error fetching messages:', error);
-                setMessages([
-                    {
-                        _id: 'welcome',
-                        sender: 'bot',
-                        content:
-                            '⚽ Xin chào! Tôi là SânBóngBot\n\nTôi có thể giúp bạn:\n• Xem giá thuê sân\n• Thông tin giờ mở cửa\n• Hướng dẫn đặt sân\n• Gợi ý khung giờ trống\n\nHãy hỏi tôi bất cứ điều gì! 😊',
-                        timestamp: new Date(),
-                    },
-                ]);
+                setMessages([WELCOME_MESSAGE]);
             }
         };
         if (!dataUser._id) return;
@@ -59,24 +85,10 @@ function Chatbot() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, isLoading]);
 
     useEffect(() => {
-        if (!isLoading) {
-            scrollToBottom();
-        }
-    }, [isLoading]);
-
-    useEffect(() => {
-        if (isOpen && messages.length > 0) {
-            scrollToBottom();
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (isOpen) {
-            setUnreadCount(0);
-        }
+        if (isOpen) setUnreadCount(0);
     }, [isOpen]);
 
     const handleSend = async (customMessage = null) => {
@@ -87,9 +99,7 @@ function Chatbot() {
             const shouldLogin = window.confirm(
                 '🔐 Bạn cần đăng nhập để sử dụng chatbot. Bạn có muốn đăng nhập ngay bây giờ không?',
             );
-            if (shouldLogin) {
-                navigate('/login');
-            }
+            if (shouldLogin) navigate('/login');
             return;
         }
 
@@ -102,37 +112,39 @@ function Chatbot() {
         setMessages((prev) => [...prev, userMessage]);
         setInputValue('');
         setIsLoading(true);
-
-        setTimeout(() => scrollToBottom(), 50);
+        scrollToBottom();
 
         try {
             const res = await requestChatbot({ question: messageToSend });
+            const data = res.metadata || {};
 
             const botMessage = {
                 _id: (Date.now() + 1).toString(),
                 sender: 'bot',
-                content: res.metadata,
+                content: data.reply || data,
                 timestamp: new Date(),
+                metadata: {
+                    intent: data.intent,
+                    suggestions: data.suggestions,
+                    needsHuman: data.needsHuman,
+                },
             };
             setMessages((prev) => [...prev, botMessage]);
-
-            setTimeout(() => scrollToBottom(), 100);
-
-            if (!isOpen) {
-                setUnreadCount((prev) => prev + 1);
-            }
+            if (data.suggestions?.length) setSuggestions(data.suggestions);
+            if (!isOpen) setUnreadCount((prev) => prev + 1);
         } catch (error) {
-            const errorMessage = {
-                _id: (Date.now() + 1).toString(),
-                sender: 'bot',
-                content: '❌ Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
-                timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-
-            setTimeout(() => scrollToBottom(), 100);
+            setMessages((prev) => [
+                ...prev,
+                {
+                    _id: (Date.now() + 1).toString(),
+                    sender: 'bot',
+                    content: '❌ Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+                    timestamp: new Date(),
+                },
+            ]);
         } finally {
             setIsLoading(false);
+            scrollToBottom();
         }
     };
 
@@ -145,10 +157,7 @@ function Chatbot() {
 
     const formatTime = (timestamp) => {
         const date = new Date(timestamp);
-        return date.toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+        return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -161,7 +170,6 @@ function Chatbot() {
                         border: '1px solid rgba(255,255,255,0.1)',
                     }}
                 >
-                    {/* Header */}
                     <div className="relative p-4">
                         <div
                             className="absolute inset-0"
@@ -183,10 +191,10 @@ function Chatbot() {
                                     ⚽
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-white text-lg tracking-wide">SânBóngBot</h3>
+                                    <h3 className="font-bold text-white text-lg tracking-wide">AloBookingBot</h3>
                                     <div className="flex items-center gap-1.5">
                                         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                        <span className="text-green-300 text-xs">Đang hoạt động</span>
+                                        <span className="text-green-300 text-xs">Tư vấn đặt sân 24/7</span>
                                     </div>
                                 </div>
                             </div>
@@ -199,7 +207,6 @@ function Chatbot() {
                         </div>
                     </div>
 
-                    {/* Messages */}
                     <div
                         className="flex-1 overflow-y-auto p-4 space-y-4"
                         style={{
@@ -227,6 +234,15 @@ function Chatbot() {
                                         </div>
                                     )}
                                     <div className="flex flex-col">
+                                        {message.sender === 'bot' && message.metadata?.intent && (
+                                            <Tag
+                                                color="purple"
+                                                className="mb-1 self-start text-[10px]"
+                                                style={{ margin: 0, marginBottom: 4 }}
+                                            >
+                                                {INTENT_LABELS[message.metadata.intent] || 'Tư vấn'}
+                                            </Tag>
+                                        )}
                                         <div
                                             className={`rounded-2xl px-4 py-3 ${
                                                 message.sender === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'
@@ -248,6 +264,11 @@ function Chatbot() {
                                             <p className="whitespace-pre-wrap text-sm leading-relaxed">
                                                 {message.content}
                                             </p>
+                                            {message.metadata?.needsHuman && (
+                                                <p className="text-xs text-orange-300 mt-2">
+                                                    🙋 Cần nhân viên? Gọi 1900 1234
+                                                </p>
+                                            )}
                                         </div>
                                         <Text
                                             className={`text-xs mt-1 opacity-60 ${
@@ -255,7 +276,7 @@ function Chatbot() {
                                             }`}
                                             style={{ color: '#888' }}
                                         >
-                                            {formatTime(message.timestamp)}
+                                            {formatTime(message.timestamp || message.createdAt)}
                                         </Text>
                                     </div>
                                 </div>
@@ -279,23 +300,8 @@ function Chatbot() {
                                             border: '1px solid rgba(255,255,255,0.1)',
                                         }}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex gap-1">
-                                                <span
-                                                    className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: '0ms' }}
-                                                ></span>
-                                                <span
-                                                    className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: '150ms' }}
-                                                ></span>
-                                                <span
-                                                    className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: '300ms' }}
-                                                ></span>
-                                            </div>
-                                            <Text className="text-gray-400 text-sm">Đang suy nghĩ...</Text>
-                                        </div>
+                                        <Spin size="small" />
+                                        <Text className="text-gray-400 text-sm ml-2">Đang xử lý...</Text>
                                     </div>
                                 </div>
                             </div>
@@ -303,27 +309,24 @@ function Chatbot() {
                         <div ref={messagesEndRef} className="h-1" />
                     </div>
 
-                    {/* Quick Questions */}
-                    {messages.length <= 1 && (
-                        <div className="px-4 py-2 flex gap-2 flex-wrap" style={{ background: 'rgba(15,52,96,0.9)' }}>
-                            {quickQuestions.map((q, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleSend(q.text)}
-                                    className="px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:scale-105"
-                                    style={{
-                                        background: 'rgba(102,126,234,0.2)',
-                                        border: '1px solid rgba(102,126,234,0.4)',
-                                        color: '#a5b4fc',
-                                    }}
-                                >
-                                    {q.icon} {q.text}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    <div className="px-4 py-2 flex gap-2 flex-wrap" style={{ background: 'rgba(15,52,96,0.9)' }}>
+                        {(suggestions.length ? suggestions : QUICK_ACTIONS.map((q) => q.text)).map((text, index) => (
+                            <button
+                                key={`${text}-${index}`}
+                                onClick={() => handleSend(text)}
+                                disabled={isLoading}
+                                className="px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                                style={{
+                                    background: 'rgba(102,126,234,0.2)',
+                                    border: '1px solid rgba(102,126,234,0.4)',
+                                    color: '#a5b4fc',
+                                }}
+                            >
+                                {QUICK_ACTIONS.find((q) => q.text === text)?.icon || '💬'} {text}
+                            </button>
+                        ))}
+                    </div>
 
-                    {/* Input */}
                     <div
                         className="p-4"
                         style={{
@@ -345,11 +348,7 @@ function Chatbot() {
                                 placeholder="Nhập câu hỏi của bạn..."
                                 autoSize={{ minRows: 1, maxRows: 3 }}
                                 className="flex-1 border-0 bg-transparent text-white placeholder-gray-500 focus:shadow-none"
-                                style={{
-                                    background: 'transparent',
-                                    color: 'white',
-                                    resize: 'none',
-                                }}
+                                style={{ background: 'transparent', color: 'white', resize: 'none' }}
                                 disabled={isLoading}
                             />
                             <Button
@@ -367,13 +366,13 @@ function Chatbot() {
                         </div>
                         {!dataUser._id && (
                             <Text className="text-xs text-orange-400 mt-2 block text-center">
-                                🔐 Đăng nhập để sử dụng đầy đủ tính năng
+                                🔐 Đăng nhập để đặt sân & tra cứu qua chatbot
                             </Text>
                         )}
                     </div>
                 </div>
             ) : (
-                <Tooltip title="Chat với SânBóngBot" placement="left">
+                <Tooltip title="Chat với AloBookingBot" placement="left">
                     <div className="relative">
                         <button
                             onClick={() => setIsOpen(true)}
@@ -392,7 +391,6 @@ function Chatbot() {
                                 style={{ backgroundColor: '#ef4444' }}
                             />
                         )}
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse border-2 border-white"></div>
                     </div>
                 </Tooltip>
             )}

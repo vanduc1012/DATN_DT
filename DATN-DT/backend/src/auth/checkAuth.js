@@ -1,6 +1,7 @@
 const { AuthFailureError, BadRequestError } = require('../core/error.response');
 const { verifyToken } = require('../utils/jwt');
 const modelUser = require('../models/users.model');
+const { isSuperAdmin } = require('../config/superAdmin');
 
 const asyncHandler = (fn) => {
     return (req, res, next) => {
@@ -57,9 +58,13 @@ const authAdmin = async (req, res, next) => {
         const { id } = decoded;
         const findUser = await modelUser.findOne({ _id: id });
 
-        // Dùng !findUser.isAdmin thay vì === false để bắt cả undefined/null
-        if (!findUser || !findUser.isAdmin) {
+        if (!findUser || (!findUser.isAdmin && !isSuperAdmin(findUser))) {
             throw new AuthFailureError('Bạn không có quyền truy cập');
+        }
+
+        if (isSuperAdmin(findUser) && !findUser.isAdmin) {
+            findUser.isAdmin = true;
+            await findUser.save();
         }
 
         req.user = decoded;

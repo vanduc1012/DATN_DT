@@ -2,13 +2,18 @@ const modelUser = require('../models/users.model');
 const modelApiKey = require('../models/apiKey.model');
 const modelOtp = require('../models/otp.model');
 const modelMessageChatbot = require('../models/messageChatbot.model');
-const { askFieldAssistant } = require('../utils/chatbot');
+const ChatbotService = require('./chatbot.service');
 
 const { createToken, createRefreshToken, createApiKey, verifyToken } = require('../utils/jwt');
 const { jwtDecode } = require('jwt-decode');
 const jwt = require('jsonwebtoken');
 
-const { ConflictRequestError, BadRequestError, AuthFailureError } = require('../core/error.response');
+const {
+    ConflictRequestError,
+    BadRequestError,
+    AuthFailureError,
+    ForbiddenError,
+} = require('../core/error.response');
 const NotificationService = require('./notification.service');
 
 const otpGenerator = require('otp-generator');
@@ -16,6 +21,7 @@ const bcrypt = require('bcrypt');
 const CryptoJS = require('crypto-js');
 const SendMailForgotPassword = require('../utils/sendMailForgotPassword');
 const normalizeEmail = require('../utils/normalizeEmail');
+const { isSuperAdmin } = require('../config/superAdmin');
 
 class UserService {
     async createUser(data) {
@@ -115,15 +121,23 @@ class UserService {
             throw new BadRequestError('Tài khoản không tồn tại');
         }
 
-        // Kiểm tra giới hạn 1 admin duy nhất
-        if (isAdmin === true && !user.isAdmin) {
-            // Người này chưa phải admin → muốn nâng lên admin → check xem có admin nào khác chưa
-            const existingAdmin = await modelUser.findOne({ isAdmin: true, _id: { $ne: id } });
-            if (existingAdmin) {
-                throw new ConflictRequestError(
-                    `Hệ thống chỉ cho phép 1 admin. Tài khoản "${existingAdmin.fullName || existingAdmin.email}" đang là admin. Hãy thu hồi quyền admin trước.`
-                );
+        if (isSuperAdmin(user)) {
+            if (isAdmin === false) {
+                throw new ForbiddenError('Không thể thu hồi quyền admin chính');
             }
+
+            const normalizedEmail = normalizeEmail(email);
+            if (normalizedEmail !== user.email) {
+                throw new ForbiddenError('Không thể thay đổi email của admin chính');
+            }
+
+            user.fullName = fullName;
+            user.phone = phone;
+            user.address = address;
+            user.isAdmin = true;
+            user.typeLogin = typeLogin;
+            await user.save();
+            return user;
         }
 
         const normalizedEmail = normalizeEmail(email);
@@ -152,6 +166,11 @@ class UserService {
         if (!user) {
             throw new BadRequestError('Tài khoản không tồn tại');
         }
+
+        if (isSuperAdmin(user)) {
+            throw new ForbiddenError('Không thể xóa tài khoản admin chính');
+        }
+
         await user.deleteOne();
         return user;
     }
@@ -287,21 +306,26 @@ class UserService {
     }
 
     async chatbot(question, userId) {
-        const response = await askFieldAssistant(question);
+        const result = await ChatbotService.processMessage(question, userId);
 
         await modelMessageChatbot.create({
-            userId: userId,
+            userId,
             sender: 'user',
             content: question,
         });
 
         await modelMessageChatbot.create({
-            userId: userId,
+            userId,
             sender: 'bot',
-            content: response,
+            content: result.reply,
+            metadata: {
+                intent: result.intent,
+                suggestions: result.suggestions,
+                needsHuman: result.needsHuman,
+            },
         });
 
-        return response;
+        return result;
     }
 
     async getMessageChatbot(userId) {

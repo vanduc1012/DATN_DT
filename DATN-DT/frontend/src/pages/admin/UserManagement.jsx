@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, Popconfirm, Tag, Space, Avatar } from 'antd';
 import { UserPlus, Edit2, Trash2, Search, Users, Shield, Mail, Phone } from 'lucide-react';
 import { getAllUsers, updateUserAdmin, deleteUserAdmin } from '../../config/AdminUserRequest';
+import { isSuperAdmin } from '../../config/superAdmin';
 
 function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -116,9 +117,12 @@ function UserManagement() {
             title: 'Vai trò',
             dataIndex: 'isAdmin',
             key: 'isAdmin',
-            render: (isAdmin) => (
-                <Tag color={isAdmin ? 'gold' : 'default'} icon={isAdmin ? <Shield size={12} /> : null}>
-                    {isAdmin ? 'Admin' : 'Người dùng'}
+            render: (isAdmin, record) => (
+                <Tag
+                    color={isSuperAdmin(record) ? 'red' : isAdmin ? 'gold' : 'default'}
+                    icon={isAdmin ? <Shield size={12} /> : null}
+                >
+                    {isSuperAdmin(record) ? 'Admin chính' : isAdmin ? 'Admin' : 'Người dùng'}
                 </Tag>
             ),
         },
@@ -139,16 +143,22 @@ function UserManagement() {
                         onClick={() => handleEdit(record)}
                         className="text-blue-500 hover:text-blue-700"
                     />
-                    <Popconfirm
-                        title="Xóa người dùng"
-                        description="Bạn có chắc muốn xóa người dùng này?"
-                        onConfirm={() => handleDelete(record._id)}
-                        okText="Xóa"
-                        cancelText="Hủy"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <Button type="text" icon={<Trash2 size={16} />} className="text-red-500 hover:text-red-700" />
-                    </Popconfirm>
+                    {!isSuperAdmin(record) && (
+                        <Popconfirm
+                            title="Xóa người dùng"
+                            description="Bạn có chắc muốn xóa người dùng này?"
+                            onConfirm={() => handleDelete(record._id)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                type="text"
+                                icon={<Trash2 size={16} />}
+                                className="text-red-500 hover:text-red-700"
+                            />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
@@ -269,7 +279,10 @@ function UserManagement() {
                             { type: 'email', message: 'Email không hợp lệ' },
                         ]}
                     >
-                        <Input prefix={<Mail size={16} className="text-gray-400" />} />
+                        <Input
+                            prefix={<Mail size={16} className="text-gray-400" />}
+                            disabled={editingUser && isSuperAdmin(editingUser)}
+                        />
                     </Form.Item>
 
                     <Form.Item name="phone" label="Số điện thoại">
@@ -281,7 +294,7 @@ function UserManagement() {
                     </Form.Item>
 
                     <Form.Item name="isAdmin" label="Vai trò">
-                        <Select>
+                        <Select disabled={editingUser && isSuperAdmin(editingUser)}>
                             <Select.Option value="false">Người dùng</Select.Option>
                             <Select.Option value="true">Quản trị viên</Select.Option>
                         </Select>
