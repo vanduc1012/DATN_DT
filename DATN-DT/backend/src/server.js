@@ -12,14 +12,6 @@ const { initSocket } = require('./config/socket');
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-connectDB();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
 
@@ -28,6 +20,7 @@ const allowedOrigins = [
     'http://localhost:5174',
     'https://datn-dt.vercel.app',
     'https://datn-3j79n4hob-vanduc1012-s-projects.vercel.app',
+    'https://datndt-production.up.railway.app',
     normalizeOrigin(process.env.URL_CLIENT),
 ].filter(Boolean);
 
@@ -52,6 +45,9 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
@@ -94,10 +90,10 @@ try {
     console.error('Cron job error:', error.message);
 }
 
-if (process.env.NODE_ENV !== 'production') {
-    server.listen(port, () => {
-        console.log(`🚀 Server running on port ${port}`);
-    });
-}
+connectDB();
+
+server.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
+});
 
 module.exports = app;
