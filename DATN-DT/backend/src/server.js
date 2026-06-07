@@ -24,10 +24,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.get('/', (req, res) => {
-    res.json({ success: true, message: 'Backend API is running' });
-});
-
 const server = http.createServer(app);
 
 server.listen(port, '0.0.0.0', () => {
@@ -59,6 +55,9 @@ async function bootstrap() {
 
     const routes = require('./routes/index.routes');
     routes(app);
+
+    const { serveFrontend } = require('./config/serveFrontend');
+    serveFrontend(app);
 
     app.use((err, req, res, next) => {
         const statusCode = err.statusCode || 500;

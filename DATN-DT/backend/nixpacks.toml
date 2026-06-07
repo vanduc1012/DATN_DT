@@ -2,7 +2,10 @@
 nixPkgs = ["nodejs_22", "python3", "gcc", "gnumake"]
 
 [phases.install]
-cmds = ["npm install --omit=dev"]
+cmds = [
+    "cd ../frontend && npm ci && npm run build",
+    "npm ci --omit=dev",
+]
 
 [start]
 cmd = "node src/server.js"
