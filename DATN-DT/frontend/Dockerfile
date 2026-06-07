@@ -16,7 +16,7 @@ ENV VITE_URL_IMAGE=$VITE_URL_IMAGE
 ENV VITE_CLIENT_ID=$VITE_CLIENT_ID
 ENV VITE_SECRET_CRYPTO=$VITE_SECRET_CRYPTO
 
-RUN npm run build && npm prune --omit=dev && npm cache clean --force
+RUN npm run build && npm cache clean --force
 
 FROM node:22-alpine AS run
 WORKDIR /app

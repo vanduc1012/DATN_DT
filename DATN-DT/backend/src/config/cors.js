@@ -26,6 +26,9 @@ function getCorsOptions() {
                 if (!origin) return callback(null, true);
                 const normalizedOrigin = normalizeOrigin(origin);
                 if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+                if (process.env.NODE_ENV === 'production' && normalizedOrigin?.endsWith('.up.railway.app')) {
+                    return callback(null, true);
+                }
                 console.log('Blocked by CORS:', normalizedOrigin);
                 return callback(null, false);
             },
