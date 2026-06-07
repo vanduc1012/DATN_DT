@@ -1,5 +1,8 @@
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+if (!process.env.RAILWAY_ENVIRONMENT) {
+    require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+}
 
 const express = require('express');
 const http = require('http');
@@ -11,7 +14,8 @@ const routes = require('./routes/index.routes');
 const { initSocket } = require('./config/socket');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
+const host = process.env.HOST || '::';
 
 const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
 
@@ -24,6 +28,10 @@ const allowedOrigins = [
     normalizeOrigin(process.env.URL_CLIENT),
 ].filter(Boolean);
 
+console.log('NODE_ENV =', process.env.NODE_ENV);
+console.log('RAILWAY_ENVIRONMENT =', process.env.RAILWAY_ENVIRONMENT || 'local');
+console.log('PORT =', port);
+console.log('HOST =', host);
 console.log('URL_CLIENT =', process.env.URL_CLIENT);
 console.log('allowedOrigins =', allowedOrigins);
 
@@ -44,6 +52,10 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
+app.get('/health', (req, res) => {
+    res.status(200).json({ success: true, status: 'ok' });
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -90,10 +102,14 @@ try {
     console.error('Cron job error:', error.message);
 }
 
-connectDB();
+server.listen(port, host, () => {
+    console.log(`Server running on [${host}]:${port}`);
+    connectDB();
+});
 
-server.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+server.on('error', (error) => {
+    console.error('Server listen error:', error);
+    process.exit(1);
 });
 
 module.exports = app;

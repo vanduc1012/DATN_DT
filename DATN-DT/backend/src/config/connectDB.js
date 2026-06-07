@@ -23,7 +23,12 @@ const connectDB = async () => {
 
         console.log('✅ MongoDB connected');
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
+        console.error('❌ MongoDB connection error:', error.message);
+        if (process.env.RAILWAY_ENVIRONMENT) {
+            console.error('Retrying MongoDB connection in 5s...');
+            setTimeout(connectDB, 5000);
+            return;
+        }
         process.exit(1);
     }
 };
