@@ -1,7 +1,17 @@
-const Groq = require('groq-sdk');
 require('dotenv').config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groq = null;
+if (process.env.GROQ_API_KEY) {
+    try {
+        const Groq = require('groq-sdk');
+        groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    } catch (err) {
+        console.warn('Could not initialize Groq SDK:', err.message);
+        groq = null;
+    }
+} else {
+    console.warn('GROQ_API_KEY not set; chatbot functionality disabled.');
+}
 
 // Import models
 const Field = require('../models/field.model');
@@ -177,6 +187,13 @@ LỊCH SỬ: ${history || 'Mới'}
 KHÁCH HỎI: "${question}"
 
 Trả lời ngắn gọn, thân thiện, dùng emoji. Nếu khách muốn đặt sân, hướng dẫn vào /fields.`;
+
+        if (!groq) {
+            return (
+                contextData ||
+                '⚠️ Chatbot tạm thời không có sẵn. Vui lòng truy cập /fields hoặc gọi hotline 1900 1234.'
+            );
+        }
 
         const completion = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',

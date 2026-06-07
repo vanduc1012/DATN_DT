@@ -4,7 +4,7 @@ import { requestRefreshToken } from './UserRequest';
 
 export class ApiClient {
     constructor(baseURL) {
-        this.baseURL = baseURL || import.meta.env.VITE_API_URL || '';
+        this.baseURL = baseURL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
         this.axiosInstance = axios.create({
             baseURL: this.baseURL,
             timeout: 10000,

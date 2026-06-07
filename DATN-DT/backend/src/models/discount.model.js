@@ -82,8 +82,7 @@ const discountSchema = new Schema(
     },
 );
 
-// Index để tìm kiếm nhanh theo code
-discountSchema.index({ code: 1 });
+// Index để tìm kiếm nhanh theo code (unique already creates an index)
 discountSchema.index({ isActive: 1, startDate: 1, endDate: 1 });
 
 const Discount = mongoose.model('Discount', discountSchema);
