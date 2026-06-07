@@ -65,9 +65,11 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-
     const statusCode = err.statusCode || 500;
+
+    if (statusCode >= 500) {
+        console.error('Server error:', err);
+    }
 
     res.status(statusCode).json({
         success: false,

@@ -5,7 +5,13 @@ const Schema = mongoose.Schema;
 const modelUser = new Schema(
     {
         fullName: { type: String, require: true },
-        email: { type: String, require: true },
+        email: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+        },
         password: { type: String, require: true },
         isAdmin: { type: Boolean, default: false },
         address: { type: String, require: false, default: '' },

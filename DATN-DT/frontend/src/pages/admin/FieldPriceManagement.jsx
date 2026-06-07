@@ -4,6 +4,7 @@ import { message, Modal, Popconfirm, Select, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 import { getAllFields } from '../../config/FieldRequest';
 import { getFieldPrices, createFieldPrice, updateFieldPrice, deleteFieldPrice } from '../../config/FieldPriceRequest';
+import { getFieldImageUrl } from '../../utils/imageUrl';
 
 function FieldPriceManagement() {
     const [fields, setFields] = useState([]);
@@ -216,7 +217,7 @@ function FieldPriceManagement() {
                         >
                             <div className="flex items-start gap-4">
                                 <img
-                                    src={field.images?.[0] || 'https://via.placeholder.com/100?text=No+Image'}
+                                    src={getFieldImageUrl(field.images?.[0])}
                                     alt={field.name}
                                     className="w-16 h-16 rounded-lg object-cover"
                                 />

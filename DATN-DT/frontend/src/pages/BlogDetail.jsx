@@ -4,6 +4,7 @@ import { requestGetBlogById } from '../config/BlogRequest';
 import { Calendar, User, ArrowLeft, Clock } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { getBlogImageUrl, getBlogImageFallback } from '../utils/imageUrl';
 
 function BlogDetail() {
     const { id } = useParams();
@@ -91,12 +92,12 @@ function BlogDetail() {
                 {/* Featured Image */}
                 <div className="rounded-2xl overflow-hidden shadow-lg mb-12 aspect-[21/9]">
                     <img
-                        src={`${import.meta.env.VITE_URL_IMAGE}/uploads/blogs/${blog.image}`}
+                        src={getBlogImageUrl(blog.image)}
                         alt={blog.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/1200x600?text=Blog+Image';
+                            e.target.src = getBlogImageFallback();
                         }}
                     />
                 </div>

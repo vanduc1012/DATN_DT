@@ -229,8 +229,10 @@ class UserController {
         }
         const bcrypt = require('bcrypt');
         const modelUser = require('../models/users.model');
+        const normalizeEmail = require('../utils/normalizeEmail');
 
-        const existingUser = await modelUser.findOne({ email });
+        const normalizedEmail = normalizeEmail(email);
+        const existingUser = await modelUser.findOne({ email: normalizedEmail });
         if (existingUser) {
             throw new BadRequestError('Email đã tồn tại');
         }
@@ -241,7 +243,7 @@ class UserController {
 
         const newUser = await modelUser.create({
             fullName: fullName || 'Admin',
-            email,
+            email: normalizedEmail,
             password: passwordHash,
             isAdmin: true,
             typeLogin: 'email',

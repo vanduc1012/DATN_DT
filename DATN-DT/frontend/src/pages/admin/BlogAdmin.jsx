@@ -12,6 +12,7 @@ import {
     requestDeleteBlog,
     requestUpdateBlog,
 } from '../../config/BlogRequest';
+import { getBlogImageUrl, getBlogImageFallback } from '../../utils/imageUrl';
 
 const { TabPane } = Tabs;
 
@@ -361,9 +362,13 @@ function BlogAdmin() {
 
                         <div className="mb-4">
                             <img
-                                src={`${import.meta.env.VITE_URL_IMAGE}/uploads/blogs/${previewBlog.image}`}
+                                src={getBlogImageUrl(previewBlog.image)}
                                 alt={previewBlog.title}
                                 className="w-full h-auto rounded-lg"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = getBlogImageFallback();
+                                }}
                             />
                         </div>
 

@@ -32,7 +32,7 @@ export function Provider({ children }) {
             const user = JSON.parse(originalText);
             setDataUser(user);
         } catch (error) {
-            console.error('Auth error:', error);
+            cookies.remove('logged');
         } finally {
             setAuthChecked(true);
         }

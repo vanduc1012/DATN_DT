@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, Filter, X, Upload, Image as ImageIcon } fr
 import { message, Modal, Popconfirm, Select } from 'antd';
 import { getAllFields, createField, updateField, deleteField } from '../../config/FieldRequest';
 import provinces from '../../json/provinces.json';
+import { getFieldImageUrl } from '../../utils/imageUrl';
 
 function FieldManagement() {
     const [fields, setFields] = useState([]);
@@ -349,7 +350,7 @@ function FieldManagement() {
                                         <div className="flex items-center gap-3">
                                             <img
                                                 src={
-                                                    field.images?.[0] || 'https://via.placeholder.com/100?text=No+Image'
+                                                    getFieldImageUrl(field.images?.[0])
                                                 }
                                                 alt={field.name}
                                                 className="w-12 h-12 rounded-lg object-cover"

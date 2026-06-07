@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { requestGetAllBlog } from '../config/BlogRequest';
 import { Calendar, Search } from 'lucide-react';
 import Header from '../components/Header';
+import { getBlogImageUrl, getBlogImageFallback } from '../utils/imageUrl';
 
 function BlogPage() {
     const [blogs, setBlogs] = useState([]);
@@ -76,13 +77,12 @@ function BlogPage() {
                                     >
                                         <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
                                             <img
-                                                src={`${import.meta.env.VITE_URL_IMAGE}/uploads/blogs/${blog.image}`}
+                                                src={getBlogImageUrl(blog.image)}
                                                 alt={blog.title}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 onError={(e) => {
                                                     e.target.onerror = null;
-                                                    e.target.src =
-                                                        'https://via.placeholder.com/800x500?text=Blog+Image';
+                                                    e.target.src = getBlogImageFallback();
                                                 }}
                                             />
                                             <div className="absolute inset-0 bg-black/10 group-hover:opacity-0 transition-opacity duration-300"></div>

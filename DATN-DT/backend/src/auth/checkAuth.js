@@ -8,12 +8,31 @@ const asyncHandler = (fn) => {
     };
 };
 
+const clearAuthCookies = (res) => {
+    res.clearCookie('token');
+    res.clearCookie('refreshToken');
+    res.clearCookie('logged');
+};
+
 const authUser = async (req, res, next) => {
     try {
-        const user = req.cookies.token;
-        if (!user) throw new AuthFailureError('Vui lòng đăng nhập');
-        const token = user;
-        const decoded = await verifyToken(token);
+        const token = req.cookies.token;
+        if (!token) throw new AuthFailureError('Vui lòng đăng nhập');
+
+        let decoded;
+        try {
+            decoded = await verifyToken(token);
+        } catch (_jwtErr) {
+            clearAuthCookies(res);
+            throw new AuthFailureError('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        }
+
+        const findUser = await modelUser.findById(decoded.id);
+        if (!findUser) {
+            clearAuthCookies(res);
+            throw new AuthFailureError('Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại');
+        }
+
         req.user = decoded;
         next();
     } catch (error) {

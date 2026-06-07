@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
+import { getFieldImageUrl } from '../utils/imageUrl';
 import { useState, useEffect } from 'react';
 import {
     MapPin,
@@ -244,10 +245,7 @@ function Checkout() {
                             <div className="flex gap-6">
                                 {/* Field Image */}
                                 <img
-                                    src={
-                                        bookingData.field.images?.[0] ||
-                                        'https://via.placeholder.com/200x150?text=Field'
-                                    }
+                                    src={getFieldImageUrl(bookingData.field.images?.[0])}
                                     alt={bookingData.field.name}
                                     className="w-40 h-28 object-cover rounded-xl"
                                 />
@@ -426,9 +424,7 @@ function Checkout() {
                             {/* Field Name */}
                             <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
                                 <img
-                                    src={
-                                        bookingData.field.images?.[0] || 'https://via.placeholder.com/60x60?text=Field'
-                                    }
+                                    src={getFieldImageUrl(bookingData.field.images?.[0])}
                                     alt={bookingData.field.name}
                                     className="w-14 h-14 object-cover rounded-lg"
                                 />

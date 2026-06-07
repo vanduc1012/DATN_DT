@@ -5,6 +5,7 @@ import { CheckCircle, MapPin, Calendar, Clock, CreditCard, Mail, ArrowRight } fr
 import { getBookingById, verifyMomoPayment, verifyVnpayPayment } from '../config/BookingRequest';
 import { message } from 'antd';
 import Footer from '../components/Footer';
+import { getFieldImageUrl } from '../utils/imageUrl';
 
 function BookingSuccess() {
     const { id } = useParams();
@@ -183,7 +184,7 @@ function BookingSuccess() {
                         {/* Field Info */}
                         <div className="flex gap-4 pb-4 mb-4 border-b border-gray-100">
                             <img
-                                src={field?.images?.[0] || 'https://via.placeholder.com/100x100?text=Field'}
+                                src={getFieldImageUrl(field?.images?.[0])}
                                 alt={field?.name}
                                 className="w-20 h-20 object-cover rounded-xl"
                             />

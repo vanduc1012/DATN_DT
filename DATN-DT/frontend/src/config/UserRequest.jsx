@@ -14,7 +14,7 @@ export const requestRegister = async (data) => {
 };
 
 export const requestAuth = async () => {
-    const res = await apiClient.get(`${apiUser}/auth`);
+    const res = await request.get(`${apiUser}/auth`);
     return res.data;
 };
 

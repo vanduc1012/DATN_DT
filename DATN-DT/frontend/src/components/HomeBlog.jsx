@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { requestGetAllBlog } from '../config/BlogRequest';
+import { getBlogImageUrl, getBlogImageFallback } from '../utils/imageUrl';
 import { User, Calendar, ArrowRight } from 'lucide-react';
 
 function HomeBlog() {
@@ -67,12 +68,12 @@ function HomeBlog() {
                                 {/* Image Container */}
                                 <div className="relative aspect-[16/9] overflow-hidden">
                                     <img
-                                        src={`${import.meta.env.VITE_URL_IMAGE}/uploads/blogs/${blog.image}`}
+                                        src={getBlogImageUrl(blog.image)}
                                         alt={blog.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         onError={(e) => {
                                             e.target.onerror = null;
-                                            e.target.src = 'https://via.placeholder.com/800x450?text=Blog+Image';
+                                            e.target.src = getBlogImageFallback();
                                         }}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
