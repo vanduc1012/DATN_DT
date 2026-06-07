@@ -30,25 +30,6 @@ const steps = [
     },
 ];
 
-const faqs = [
-    {
-        question: 'Làm sao để hủy đặt sân?',
-        answer: 'Bạn có thể hủy đặt sân trong mục "Lịch sử đặt sân" trước giờ bắt đầu ít nhất 2 tiếng. Phí hủy sẽ được áp dụng theo chính sách của sân.',
-    },
-    {
-        question: 'Tôi có thể đặt sân trước bao lâu?',
-        answer: 'Bạn có thể đặt sân trước tối đa 30 ngày. Đối với các sân có lịch kín, nên đặt sớm để đảm bảo có chỗ.',
-    },
-    {
-        question: 'Các phương thức thanh toán được chấp nhận?',
-        answer: 'Chúng tôi hỗ trợ thanh toán qua MoMo, VNPay và thanh toán trực tiếp tại sân khi đến.',
-    },
-    {
-        question: 'Mã giảm giá có thể sử dụng nhiều lần không?',
-        answer: 'Tùy thuộc vào loại mã giảm giá. Một số mã chỉ sử dụng được một lần, một số khác có thể sử dụng nhiều lần trong thời hạn hiệu lực.',
-    },
-];
-
 function GuidePage() {
     return (
         <div className="min-h-screen bg-gray-50 font-['Inter',sans-serif]">
@@ -107,46 +88,21 @@ function GuidePage() {
                         })}
                     </div>
 
-                    {/* CTA */}
-                    <div className="text-center mt-12 md:mt-16">
+                    {/* Link to FAQ */}
+                    <div className="text-center mt-12 md:mt-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 md:p-8 border border-gray-200">
+                        <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">
+                            Bạn có thắc mắc?
+                        </h3>
+                        <p className="text-gray-500 mb-4 text-sm md:text-base">
+                            Tìm câu trả lời nhanh chóng trong mục câu hỏi thường gặp
+                        </p>
                         <Link
-                            to="/fields"
+                            to="/cau-hoi-thuong-gap"
                             className="inline-flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-[#16A34A] hover:bg-[#15803d] text-white text-base md:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                         >
-                            Bắt đầu đặt sân ngay
+                            Xem câu hỏi thường gặp
                             <ChevronRight className="w-5 h-5" />
                         </Link>
-                    </div>
-                </div>
-            </section>
-
-            {/* FAQ Section */}
-            <section className="py-16 md:py-20 bg-white">
-                <div className="max-w-3xl mx-auto px-6 lg:px-12">
-                    <div className="text-center mb-10 md:mb-12">
-                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
-                            Câu hỏi thường gặp
-                        </h2>
-                        <p className="text-gray-500">Giải đáp những thắc mắc thường gặp khi sử dụng dịch vụ</p>
-                    </div>
-
-                    <div className="space-y-4">
-                        {faqs.map((item, index) => (
-                            <details
-                                key={index}
-                                className="group bg-gray-50 rounded-xl overflow-hidden"
-                            >
-                                <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-gray-100 transition-colors">
-                                    <span className="font-semibold text-gray-800 pr-4 text-sm md:text-base">
-                                        {item.question}
-                                    </span>
-                                    <ChevronRight className="w-5 h-5 text-gray-400 transition-transform duration-300 group-open:rotate-90 flex-shrink-0" />
-                                </summary>
-                                <div className="px-5 pb-5 text-gray-600 leading-relaxed text-sm md:text-base border-t border-gray-100 pt-4">
-                                    {item.answer}
-                                </div>
-                            </details>
-                        ))}
                     </div>
                 </div>
             </section>

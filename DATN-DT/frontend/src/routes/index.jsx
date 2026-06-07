@@ -20,6 +20,7 @@ import NotificationAdmin from '../pages/admin/NotificationAdmin';
 import NotificationsPage from '../pages/NotificationsPage';
 import ForgotPassword from '../pages/ForgotPassword';
 import GuidePage from '../pages/GuidePage';
+import FAQPage from '../pages/FAQPage';
 import { AdminRoute, UserRoute, GuestRoute } from '../components/RouteGuard';
 
 export const routes = [
@@ -30,6 +31,7 @@ export const routes = [
     { path: '/blogs', element: <BlogPage /> },
     { path: '/blog/:id', element: <BlogDetail /> },
     { path: '/huong-dan', element: <GuidePage /> },
+    { path: '/cau-hoi-thuong-gap', element: <FAQPage /> },
 
     // ─── Guest-only routes (chỉ khi CHƯA đăng nhập) ───
     {

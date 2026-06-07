@@ -141,6 +141,7 @@ function Header() {
         { name: 'Trang chủ', path: '/' },
         { name: 'Danh sách sân', path: '/fields' },
         { name: 'Hướng dẫn', path: '/huong-dan' },
+        { name: 'Câu hỏi thường gặp', path: '/cau-hoi-thuong-gap' },
         { name: 'Liên hệ', path: '/lien-he' },
     ];
 
