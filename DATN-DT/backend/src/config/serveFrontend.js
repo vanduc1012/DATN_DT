@@ -2,14 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
-const distPath = path.resolve(__dirname, '../../../frontend/dist');
+const distCandidates = [
+    path.resolve(__dirname, '../../public'),
+    path.resolve(__dirname, '../../../frontend/dist'),
+];
 
-function hasFrontendBuild() {
-    return fs.existsSync(path.join(distPath, 'index.html'));
+function resolveDistPath() {
+    return distCandidates.find((dir) => fs.existsSync(path.join(dir, 'index.html'))) || null;
 }
 
 function serveFrontend(app) {
-    if (!hasFrontendBuild()) {
+    const distPath = resolveDistPath();
+
+    if (!distPath) {
         console.log('Frontend dist not found — API-only mode');
         app.get('/', (req, res) => {
             res.json({ success: true, message: 'Backend API is running' });
@@ -29,4 +34,4 @@ function serveFrontend(app) {
     });
 }
 
-module.exports = { serveFrontend, hasFrontendBuild };
+module.exports = { serveFrontend, resolveDistPath };

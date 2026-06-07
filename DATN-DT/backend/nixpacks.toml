@@ -4,6 +4,7 @@ nixPkgs = ["nodejs_22", "python3", "gcc", "gnumake"]
 [phases.install]
 cmds = [
     "cd ../frontend && npm ci && npm run build",
+    "rm -rf public && cp -r ../frontend/dist ./public",
     "npm ci --omit=dev",
 ]
 
