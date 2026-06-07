@@ -37,4 +37,7 @@ router.get('/admin/users', authAdmin, asyncHandler(userController.getAllUser));
 router.put('/admin/users/:id', authAdmin, asyncHandler(userController.updateUserAdmin));
 router.delete('/admin/users/:id', authAdmin, asyncHandler(userController.deleteUser));
 
+// DEV ONLY - Create admin user (NO auth required, only in development)
+router.post('/create-admin', asyncHandler(userController.createAdminUser));
+
 module.exports = router;
