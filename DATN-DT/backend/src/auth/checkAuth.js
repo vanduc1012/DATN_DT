@@ -1,5 +1,6 @@
 const { AuthFailureError, BadRequestError } = require('../core/error.response');
 const { verifyToken } = require('../utils/jwt');
+const { getAccessToken } = require('../utils/getAuthToken');
 const modelUser = require('../models/users.model');
 const { isSuperAdmin } = require('../config/superAdmin');
 
@@ -17,7 +18,7 @@ const clearAuthCookies = (res) => {
 
 const authUser = async (req, res, next) => {
     try {
-        const token = req.cookies.token;
+        const token = getAccessToken(req);
         if (!token) throw new AuthFailureError('Vui lòng đăng nhập');
 
         let decoded;
@@ -43,7 +44,7 @@ const authUser = async (req, res, next) => {
 
 const authAdmin = async (req, res, next) => {
     try {
-        const token = req.cookies.token;
+        const token = getAccessToken(req);
         if (!token) throw new AuthFailureError('Bạn không có quyền truy cập');
 
         // Bọc verifyToken riêng → JWT error phải thành AuthFailureError (401)

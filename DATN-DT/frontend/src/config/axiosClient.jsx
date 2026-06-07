@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { requestRefreshToken } from './UserRequest';
+import { clearAuthTokens, getAccessToken, getRefreshToken, hasAuthSession } from '../utils/authToken';
 
 export class ApiClient {
     constructor(baseURL) {
@@ -20,7 +21,13 @@ export class ApiClient {
     setupInterceptors() {
         // Request interceptor
         this.axiosInstance.interceptors.request.use(
-            (config) => config,
+            (config) => {
+                const token = getAccessToken();
+                if (token) config.headers.Authorization = `Bearer ${token}`;
+                const refreshToken = getRefreshToken();
+                if (refreshToken) config.headers['x-refresh-token'] = refreshToken;
+                return config;
+            },
             (error) => Promise.reject(error),
         );
 
@@ -89,12 +96,13 @@ export class ApiClient {
     handleAuthFailure() {
         this.logout().finally(() => {
             Cookies.remove('logged');
+            clearAuthTokens();
             window.location.href = '/login';
         });
     }
 
     isLoggedIn() {
-        return Cookies.get('logged') === '1';
+        return Cookies.get('logged') === '1' || hasAuthSession();
     }
 
     async logout() {

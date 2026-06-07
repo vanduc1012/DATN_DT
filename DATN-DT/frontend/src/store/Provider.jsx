@@ -3,6 +3,7 @@ import CryptoJS from 'crypto-js';
 import cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { requestAuth } from '../config/UserRequest';
+import { clearAuthTokens } from '../utils/authToken';
 import { ToastContainer } from 'react-toastify';
 export function Provider({ children }) {
     const [dataUser, setDataUser] = useState({});
@@ -32,6 +33,8 @@ export function Provider({ children }) {
             setDataUser(user);
         } catch (error) {
             cookies.remove('logged');
+            clearAuthTokens();
+            setDataUser({});
         } finally {
             setAuthChecked(true);
         }

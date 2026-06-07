@@ -1,15 +1,22 @@
 import { request } from './request';
 import { apiClient } from './axiosClient';
+import { getRefreshToken, saveAuthTokens } from '../utils/authToken';
 
 const apiUser = '/api/users';
 
 export const requestLogin = async (data) => {
     const res = await request.post(`${apiUser}/login`, data);
+    if (res.data?.metadata?.token) {
+        saveAuthTokens(res.data.metadata);
+    }
     return res.data;
 };
 
 export const requestRegister = async (data) => {
     const res = await request.post(`${apiUser}/register`, data);
+    if (res.data?.metadata?.token) {
+        saveAuthTokens(res.data.metadata);
+    }
     return res.data;
 };
 
@@ -19,7 +26,12 @@ export const requestAuth = async () => {
 };
 
 export const requestRefreshToken = async () => {
-    const res = await request.get(`${apiUser}/refresh-token`);
+    const res = await request.get(`${apiUser}/refresh-token`, {
+        headers: { 'x-refresh-token': getRefreshToken() || '' },
+    });
+    if (res.data?.metadata?.token) {
+        saveAuthTokens(res.data.metadata);
+    }
     return res.data;
 };
 

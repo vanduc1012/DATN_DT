@@ -2,6 +2,7 @@ const { BadRequestError } = require('../core/error.response');
 const { OK } = require('../core/success.response');
 const UserService = require('../services/users.service');
 const { getCookieOptions } = require('../utils/cookieOptions');
+const { getRefreshToken } = require('../utils/getAuthToken');
 
 function setCookie(res, token, refreshToken) {
     res.cookie('token', token, getCookieOptions({ httpOnly: true, maxAge: 15 * 60 * 1000 }));
@@ -66,7 +67,7 @@ class UserController {
     }
 
     async refreshToken(req, res) {
-        const { refreshToken } = req.cookies;
+        const refreshToken = getRefreshToken(req);
         if (!refreshToken) {
             throw new BadRequestError('Vui lòng đăng nhập lại');
         }
@@ -75,11 +76,7 @@ class UserController {
         res.cookie('token', token, getCookieOptions({ httpOnly: true, maxAge: 15 * 60 * 1000 }));
         res.cookie('logged', 1, getCookieOptions({ httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 }));
 
-        const data = {
-            token,
-        };
-
-        return new OK({ message: 'success', metadata: data }).send(res);
+        return new OK({ message: 'success', metadata: { token, refreshToken } }).send(res);
     }
 
     async getAllUser(req, res) {
