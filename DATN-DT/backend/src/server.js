@@ -8,12 +8,20 @@ const express = require('express');
 const http = require('http');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const { getAllowedOrigins, getCorsOptions } = require('./config/cors');
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
+app.set('trust proxy', 1);
+
 app.get('/health', (req, res) => {
-    res.status(200).json({ success: true, status: 'ok', port });
+    res.status(200).json({
+        success: true,
+        status: 'ok',
+        port,
+        env: process.env.NODE_ENV || 'development',
+    });
 });
 
 app.get('/', (req, res) => {
@@ -35,33 +43,12 @@ server.on('error', (error) => {
 async function bootstrap() {
     console.log('NODE_ENV =', process.env.NODE_ENV);
     console.log('RAILWAY_ENVIRONMENT =', process.env.RAILWAY_ENVIRONMENT || 'local');
+    console.log('RAILWAY_PUBLIC_DOMAIN =', process.env.RAILWAY_PUBLIC_DOMAIN || 'none');
     console.log('PORT =', port);
-
-    const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
-    const allowedOrigins = [
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'https://datn-dt.vercel.app',
-        'https://datn-3j79n4hob-vanduc1012-s-projects.vercel.app',
-        'https://datndt-production.up.railway.app',
-        normalizeOrigin(process.env.URL_CLIENT),
-    ].filter(Boolean);
-
     console.log('URL_CLIENT =', process.env.URL_CLIENT);
-    console.log('allowedOrigins =', allowedOrigins);
+    console.log('allowedOrigins =', getAllowedOrigins());
 
-    const corsOptions = {
-        origin(origin, callback) {
-            if (!origin) return callback(null, true);
-            const normalizedOrigin = normalizeOrigin(origin);
-            if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
-            console.log('Blocked by CORS:', normalizedOrigin);
-            return callback(null, false);
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-    };
+    const { options: corsOptions } = getCorsOptions();
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));

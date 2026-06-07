@@ -4,12 +4,11 @@ const slotHoldingService = require('../services/slotHolding.service');
 let io = null;
 
 function initSocket(server) {
-    const normalizeOrigin = (origin) => origin?.replace(/\/$/, '');
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', normalizeOrigin(process.env.URL_CLIENT)].filter(Boolean);
+    const { getAllowedOrigins } = require('./cors');
 
     io = new Server(server, {
         cors: {
-            origin: allowedOrigins,
+            origin: getAllowedOrigins(),
             credentials: true,
         },
     });
