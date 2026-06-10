@@ -101,7 +101,7 @@ const sections = [
         title: '9. Liên hệ',
         content: `Nếu bạn có bất kỳ câu hỏi hoặc yêu cầu nào liên quan đến Chính sách bảo mật này, vui lòng liên hệ với chúng tôi:
         • Email: contact@sanbongpro.com
-        • Điện thoại: 1900 1234 (8:00 - 22:00, thứ 2 đến CN)
+        • Điện thoại: 0355728627 (8:00 - 22:00, thứ 2 đến CN)
         • Địa chỉ: 123 Đường Nguyễn Văn Linh, Quận Thanh Khê, TP. Đà Nẵng
         Chúng tôi sẽ phản hồi trong vòng 24 giờ làm việc.`,
     },
@@ -178,11 +178,11 @@ function PrivacyPage() {
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
                             <a
-                                href="tel:19001234"
+                                href="tel:0355728627"
                                 className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 bg-white text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-sm md:text-base border border-gray-200"
                             >
                                 <Phone className="w-4 h-4 md:w-5 md:h-5" />
-                                1900 1234
+                                0355728627
                             </a>
                             <a
                                 href="mailto:contact@sanbongpro.com"

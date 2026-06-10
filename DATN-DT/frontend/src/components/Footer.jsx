@@ -122,8 +122,8 @@ function Footer() {
                             </li>
                             <li className="flex items-center gap-3 text-gray-500">
                                 <Phone className="w-5 h-5 text-[#16A34A] flex-shrink-0" />
-                                <a href="tel:19001234" className="hover:text-[#16A34A] transition-colors">
-                                    1900 1234
+                                <a href="tel:0355728627" className="hover:text-[#16A34A] transition-colors">
+                                    0355728627
                                 </a>
                             </li>
                             <li className="flex items-center gap-3 text-gray-500">

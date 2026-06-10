@@ -303,7 +303,7 @@ const PAYMENT_FAQ = `💳 THANH TOÁN:
 const FIELD_INFO_FAQ = `🏟️ THÔNG TIN SÂN:
 • Giờ mở cửa: ${OPEN_HOURS}
 • Tiện ích: đèn LED, phòng thay đồ, bãi xe, nước uống
-• Hotline: 1900 1234`;
+• Hotline: 0355728627`;
 
 module.exports = {
     OPEN_HOURS,

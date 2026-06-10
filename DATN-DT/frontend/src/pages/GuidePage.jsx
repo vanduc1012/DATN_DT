@@ -121,11 +121,11 @@ function GuidePage() {
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
                         <a
-                            href="tel:19001234"
+                            href="tel:0355728627"
                             className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 bg-white text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-sm md:text-base"
                         >
                             <Phone className="w-4 h-4 md:w-5 md:h-5" />
-                            1900 1234
+                            0355728627
                         </a>
                         <Link
                             to="/login"

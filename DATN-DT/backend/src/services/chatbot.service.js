@@ -26,7 +26,7 @@ const {
     getBookedSlots,
 } = require('../utils/chatbotData');
 
-const SUPPORT_CONTACT = '📞 Hotline: 1900 1234 | Email: support@alobooking.com';
+const SUPPORT_CONTACT = '📞 Hotline: 0355728627 | Email: support@alobooking.com';
 
 class ChatbotService {
     async getSession(userId) {
