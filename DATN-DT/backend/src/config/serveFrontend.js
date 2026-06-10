@@ -16,6 +16,7 @@ function serveFrontend(app) {
 
     if (!distPath) {
         console.log('Frontend dist not found — API-only mode');
+        console.log('Checked paths:', distCandidates);
         app.get('/', (req, res) => {
             res.json({ success: true, message: 'Backend API is running' });
         });

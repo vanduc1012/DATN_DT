@@ -1,17 +1,19 @@
 {
-    "name": "project",
+    "name": "alobooking",
     "version": "1.0.0",
     "private": true,
+    "engines": {
+        "node": ">=22"
+    },
     "scripts": {
-        "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+        "build": "npm ci --prefix frontend && npm run build --prefix frontend && node scripts/copy-frontend-build.js && npm ci --omit=dev --prefix backend",
+        "start": "npm start --prefix backend",
+        "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
         "backend": "cd backend && npm install && npm run dev",
         "frontend": "cd frontend && npm install && npm run dev"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",
         "npm-run-all": "^4.1.5"
-    },
-    "dependencies": {
-        "groq-sdk": "^0.33.0"
     }
 }
